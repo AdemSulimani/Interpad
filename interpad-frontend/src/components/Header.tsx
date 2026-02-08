@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import './Header.css';
 import { Link } from 'react-router-dom';
-import { useMenu } from '../hooks/useMenu';
 
 const Header = () => {
-  const { isMenuOpen, toggleMenu } = useMenu();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
 
   return (
     <>
