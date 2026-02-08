@@ -1,0 +1,287 @@
+.status-bar {
+  width: 100%;
+  background-color: #f9f9f9;
+  border-top: 1px solid #e0e0e0;
+  padding: 8px 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 998;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.03);
+}
+
+.status-bar-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  height: 32px;
+}
+
+/* Left Section: Word and Character Count */
+.status-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Center Section: Page Number */
+.status-bar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Right Section: Zoom and Language */
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+/* Status Items */
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.status-item-secondary {
+  opacity: 0.7;
+}
+
+.status-label {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666666;
+}
+
+.status-value {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333333;
+}
+
+.status-value-small {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: #999999;
+}
+
+/* Status Divider */
+.status-divider {
+  width: 1px;
+  height: 16px;
+  background-color: #e0e0e0;
+  flex-shrink: 0;
+}
+
+/* Status Buttons */
+.status-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Quicksand', sans-serif;
+}
+
+.status-btn:hover {
+  background-color: #e8f5f0;
+}
+
+.status-btn:active {
+  transform: scale(0.98);
+}
+
+.status-btn svg {
+  width: 14px;
+  height: 14px;
+  color: #666666;
+  flex-shrink: 0;
+}
+
+.status-btn:hover svg {
+  color: #44b492;
+}
+
+.zoom-btn {
+  min-width: 60px;
+  justify-content: center;
+}
+
+.language-btn {
+  min-width: 80px;
+  justify-content: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 4px 8px;
+}
+
+.language-btn .status-value {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.language-btn .status-value-small {
+  font-size: 10px;
+  line-height: 1;
+  display: block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .status-bar-container {
+    padding: 0 16px;
+    gap: 16px;
+  }
+
+  .status-bar-left {
+    gap: 8px;
+  }
+
+  .status-item-secondary {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .status-bar-container {
+    padding: 0 12px;
+    gap: 12px;
+    height: 36px;
+  }
+
+  .status-bar {
+    padding: 6px 0;
+  }
+
+  .status-label {
+    font-size: 11px;
+  }
+
+  .status-value {
+    font-size: 11px;
+  }
+
+  .status-value-small {
+    font-size: 10px;
+  }
+
+  .status-bar-left {
+    gap: 6px;
+  }
+
+  .status-bar-right {
+    gap: 6px;
+  }
+
+  .status-divider {
+    height: 14px;
+  }
+
+  .language-btn .status-value-small {
+    display: none;
+  }
+
+  .language-btn {
+    min-width: 50px;
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-bar-container {
+    padding: 0 8px;
+    gap: 8px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 32px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .status-bar-left {
+    flex: 1 1 100%;
+    order: 1;
+    justify-content: center;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .status-bar-center {
+    flex: 1;
+    order: 2;
+    justify-content: flex-start;
+  }
+
+  .status-bar-right {
+    flex: 1;
+    order: 3;
+    justify-content: flex-end;
+  }
+
+  .status-item {
+    gap: 4px;
+  }
+
+  .status-label {
+    font-size: 10px;
+  }
+
+  .status-value {
+    font-size: 10px;
+  }
+
+  .status-btn {
+    padding: 3px 6px;
+  }
+
+  .zoom-btn {
+    min-width: 50px;
+  }
+
+  .language-btn {
+    min-width: 40px;
+  }
+
+  .status-divider {
+    display: none;
+  }
+}
+
+/* Focus styles for accessibility */
+.status-btn:focus-visible {
+  outline: 2px solid #44b492;
+  outline-offset: 2px;
+}
+
+/* Print styles - hide status bar when printing */
+@media print {
+  .status-bar {
+    display: none;
+  }
+}
+

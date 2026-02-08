@@ -1,0 +1,86 @@
+.placeholder-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-gray-100);
+  border: 1px dashed var(--color-border-light);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  position: relative;
+  overflow: hidden;
+}
+
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  text-align: center;
+  padding: var(--spacing-4);
+}
+
+.placeholder-content svg {
+  opacity: 0.5;
+}
+
+.placeholder-text {
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+
+/* Variants */
+.placeholder-document {
+  background-color: var(--color-gray-50);
+}
+
+.placeholder-image {
+  background-color: var(--color-gray-100);
+}
+
+.placeholder-avatar {
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-border-light);
+  background-color: var(--color-gray-100);
+}
+
+.placeholder-avatar .placeholder-content svg {
+  width: 40%;
+  height: 40%;
+}
+
+.placeholder-thumbnail {
+  background-color: var(--color-gray-100);
+  min-height: 120px;
+}
+
+.placeholder-banner {
+  background-color: var(--color-gray-100);
+  min-height: 200px;
+  border-radius: var(--radius-lg);
+}
+
+/* Hover State */
+.placeholder-image:hover {
+  border-color: var(--color-border-medium);
+  background-color: var(--color-gray-200);
+}
+
+/* Loading State */
+.placeholder-image.loading {
+  background: linear-gradient(90deg, var(--color-gray-100) 25%, var(--color-gray-200) 50%, var(--color-gray-100) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+

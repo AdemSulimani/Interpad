@@ -1,0 +1,430 @@
+/* ============================================
+   Document Editor Page Layout
+   ============================================ */
+.document-editor-page {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5;
+  overflow: hidden;
+  position: relative;
+}
+
+.document-editor-page.fullscreen-mode {
+  background-color: #ffffff;
+}
+
+/* ============================================
+   Main Layout Container (Flexbox)
+   ============================================ */
+.document-editor-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+/* ============================================
+   Sidebar Toggle Button
+   ============================================ */
+.sidebar-toggle-btn {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1001;
+  width: 32px;
+  height: 48px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666666;
+  transition: all 0.3s ease;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: #f5f5f5;
+  color: #44b492;
+  width: 36px;
+}
+
+.sidebar-toggle-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.sidebar-toggle-btn svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-toggle-btn.sidebar-open svg {
+  transform: rotate(0deg);
+}
+
+.sidebar-toggle-btn:not(.sidebar-open) svg {
+  transform: rotate(180deg);
+}
+
+/* ============================================
+   Sidebar Wrapper
+   ============================================ */
+.document-editor-sidebar-wrapper {
+  width: 250px;
+  min-width: 250px;
+  transition: transform 0.3s ease, margin-left 0.3s ease;
+  flex-shrink: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: #ffffff;
+  border-right: 1px solid #e0e0e0;
+}
+
+.document-editor-sidebar-wrapper.sidebar-visible {
+  transform: translateX(0);
+  margin-left: 0;
+  position: relative;
+  pointer-events: auto;
+}
+
+.document-editor-sidebar-wrapper.sidebar-hidden {
+  transform: translateX(-100%);
+  margin-left: 0;
+  width: 0;
+  min-width: 0;
+  border-right: none;
+  position: absolute;
+  left: 0;
+  pointer-events: none;
+}
+
+/* ============================================
+   Main Content Area
+   ============================================ */
+.document-editor-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  position: relative;
+}
+
+.editor-area-wrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+   Visual Indicators (Fixed Position)
+   ============================================ */
+.document-editor-indicators {
+  position: fixed;
+  bottom: 40px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.indicators-left,
+.indicators-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.fullscreen-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #666666;
+  transition: all 0.2s;
+  padding: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.fullscreen-toggle-btn:hover {
+  background-color: #f5f5f5;
+  color: #44b492;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fullscreen-toggle-btn:active {
+  transform: translateY(0);
+}
+
+.fullscreen-toggle-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ============================================
+   Responsive Breakpoints
+   ============================================ */
+
+/* Tablet (1024px and below) */
+@media (max-width: 1024px) {
+  .document-editor-sidebar-wrapper {
+    width: 220px;
+    min-width: 220px;
+  }
+
+  .document-editor-sidebar-wrapper.sidebar-hidden {
+    margin-left: 0;
+    position: absolute;
+    left: 0;
+    pointer-events: none;
+  }
+
+  .sidebar-toggle-btn {
+    display: flex;
+  }
+}
+
+/* Tablet (768px - 1024px) - Sidebar Collapsible, Toolbar Optimized */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .document-editor-sidebar-wrapper {
+    width: 220px;
+    min-width: 220px;
+  }
+
+  .document-editor-sidebar-wrapper.sidebar-hidden {
+    margin-left: 0;
+    width: 0;
+    min-width: 0;
+    position: absolute;
+    left: 0;
+    pointer-events: none;
+  }
+
+  .sidebar-toggle-btn {
+    display: flex;
+  }
+
+  /* Optimize toolbar for tablet */
+  .formatting-toolbar-container {
+    padding: 8px 16px;
+    gap: 6px;
+  }
+
+  .toolbar-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .toolbar-dropdown {
+    font-size: 13px;
+    padding: 5px 24px 5px 8px;
+  }
+}
+
+/* Mobile (768px and below) - Sidebar Hidden, Editor Full Width, Toolbar Dropdown */
+@media (max-width: 768px) {
+  .document-editor-sidebar-wrapper {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    z-index: 1002;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    transform: translateX(-100%);
+    margin: 0;
+    padding: 0;
+    border: none;
+    overflow: visible;
+  }
+
+  .document-editor-sidebar-wrapper.sidebar-visible {
+    transform: translateX(0);
+    overflow: visible;
+  }
+
+  .document-editor-sidebar-wrapper.sidebar-hidden {
+    transform: translateX(-100%);
+    margin-left: 0;
+    overflow: hidden;
+  }
+
+  /* Editor full width on mobile */
+  .document-editor-content {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .editor-area-wrapper {
+    width: 100%;
+  }
+
+  .sidebar-toggle-btn {
+    position: fixed;
+    left: 12px;
+    top: 70px;
+    transform: none;
+    z-index: 1003;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    background-color: #ffffff;
+    transition: all 0.3s ease;
+  }
+
+  .sidebar-toggle-btn.sidebar-open {
+    left: calc(100% - 52px);
+    top: 100px;
+    background-color: #ffffff;
+    z-index: 1004;
+  }
+
+  .sidebar-toggle-btn:hover {
+    background-color: #f5f5f5;
+    transform: scale(1.05);
+  }
+
+  .document-editor-indicators {
+    bottom: 8px;
+    padding: 0 12px;
+  }
+
+  .fullscreen-toggle-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .fullscreen-toggle-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* Small Mobile (480px and below) */
+@media (max-width: 480px) {
+  .document-editor-sidebar-wrapper {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .sidebar-toggle-btn {
+    left: 8px;
+    top: 65px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .sidebar-toggle-btn.sidebar-open {
+    left: calc(100% - 48px);
+    top: 90px;
+    z-index: 1004;
+  }
+
+  .document-editor-indicators {
+    bottom: 4px;
+    padding: 0 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .indicators-right {
+    align-self: flex-end;
+  }
+}
+
+/* ============================================
+   Fullscreen Mode Styles
+   ============================================ */
+.document-editor-page.fullscreen-mode .document-editor-sidebar-wrapper {
+  display: none;
+}
+
+.document-editor-page.fullscreen-mode .sidebar-toggle-btn {
+  display: none;
+}
+
+.document-editor-page.fullscreen-mode .document-editor-indicators {
+  bottom: 20px;
+}
+
+/* ============================================
+   Sidebar Overlay (Mobile)
+   ============================================ */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1001;
+  display: none;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    display: block;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   Focus Styles for Accessibility
+   ============================================ */
+.sidebar-toggle-btn:focus-visible,
+.fullscreen-toggle-btn:focus-visible {
+  outline: 2px solid #44b492;
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+@media print {
+  .sidebar-toggle-btn,
+  .document-editor-sidebar-wrapper,
+  .document-editor-indicators,
+  .fullscreen-toggle-btn {
+    display: none !important;
+  }
+
+  .document-editor-content {
+    width: 100%;
+  }
+}
+

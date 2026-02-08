@@ -1,0 +1,400 @@
+/* ============================================
+   Skeleton Loader for Document Loading
+   ============================================ */
+.document-skeleton-loader {
+  width: 100%;
+  height: 100vh;
+  background-color: #f5f5f5;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-header {
+  width: 100%;
+  background-color: #ffffff;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.skeleton-toolbar {
+  width: 100%;
+  background-color: #ffffff;
+  padding: 8px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skeleton-content {
+  flex: 1;
+  max-width: 900px;
+  width: 100%;
+  margin: 40px auto;
+  padding: 60px 80px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.skeleton-line {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  height: 20px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-logo {
+  width: 120px;
+  height: 24px;
+}
+
+.skeleton-title {
+  flex: 1;
+  max-width: 300px;
+  height: 20px;
+}
+
+.skeleton-actions {
+  width: 200px;
+  height: 36px;
+}
+
+.skeleton-toolbar-item {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.skeleton-content-line {
+  margin-bottom: 12px;
+  height: 16px;
+}
+
+.skeleton-content-line-long {
+  width: 100%;
+}
+
+.skeleton-content-line-medium {
+  width: 75%;
+}
+
+.skeleton-content-line-short {
+  width: 50%;
+}
+
+/* ============================================
+   Save Spinner Component
+   ============================================ */
+.save-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.save-status-saving {
+  color: #44b492;
+}
+
+.save-status-saved {
+  color: #28a745;
+}
+
+.save-status-unsaved {
+  color: #ffc107;
+}
+
+.spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e0e0e0;
+  border-top-color: #44b492;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.unsaved-indicator {
+  width: 8px;
+  height: 8px;
+  background-color: #ffc107;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.save-status svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   Upload Progress Bar
+   ============================================ */
+.upload-progress-container {
+  position: fixed;
+  bottom: 48px;
+  right: 24px;
+  width: 320px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.upload-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.upload-file-name {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  margin-right: 8px;
+}
+
+.upload-progress-percentage {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #44b492;
+  flex-shrink: 0;
+}
+
+.upload-progress-bar {
+  width: 100%;
+  height: 6px;
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.upload-progress-fill {
+  height: 100%;
+  background-color: #44b492;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  animation: progress-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.upload-progress-fill {
+  background: linear-gradient(90deg, #44b492 0%, #5ac9a8 50%, #44b492 100%);
+  background-size: 200% 100%;
+}
+
+/* Success State */
+.upload-progress-complete {
+  border-color: #28a745;
+}
+
+.upload-progress-fill-success {
+  background-color: #28a745;
+  animation: none;
+}
+
+.upload-success-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #28a745;
+  flex-shrink: 0;
+}
+
+.upload-success-text svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Error State */
+.upload-progress-error {
+  border-color: #dc3545;
+}
+
+.upload-progress-fill-error {
+  background-color: #dc3545;
+  animation: none;
+}
+
+.upload-error-text {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #dc3545;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   General Spinner Component
+   ============================================ */
+.spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border: 3px solid #f0f0f0;
+  border-top-color: #44b492;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner-small {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.spinner-medium {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+}
+
+.spinner-large {
+  width: 60px;
+  height: 60px;
+  border-width: 4px;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+  .skeleton-header {
+    padding: 12px 16px;
+  }
+
+  .skeleton-toolbar {
+    padding: 8px 16px;
+  }
+
+  .skeleton-content {
+    margin: 24px auto;
+    padding: 40px 32px;
+  }
+
+  .upload-progress-container {
+    width: calc(100% - 48px);
+    right: 24px;
+    left: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .skeleton-content {
+    margin: 16px auto;
+    padding: 32px 24px;
+  }
+
+  .upload-progress-container {
+    width: calc(100% - 24px);
+    right: 12px;
+    left: 12px;
+    bottom: 40px;
+  }
+
+  .upload-file-name {
+    font-size: 12px;
+  }
+
+  .upload-progress-percentage {
+    font-size: 11px;
+  }
+}
+
+/* ============================================
+   Loading Overlay (Optional)
+   ============================================ */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.loading-overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-overlay-text {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333333;
+}
+

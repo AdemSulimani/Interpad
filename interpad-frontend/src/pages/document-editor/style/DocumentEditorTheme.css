@@ -1,0 +1,597 @@
+/* ============================================
+   Document Editor Theme & Design System
+   ============================================ */
+
+:root {
+  /* ============================================
+     Color Scheme
+     ============================================ */
+  
+  /* Primary Colors */
+  --color-primary: #44b492;
+  --color-primary-dark: #3a9a7d;
+  --color-primary-light: #5ac9a8;
+  --color-primary-lighter: #e8f5f0;
+  --color-primary-lightest: #f0f9f6;
+
+  /* Secondary Colors */
+  --color-secondary: #6c757d;
+  --color-secondary-dark: #5a6268;
+  --color-secondary-light: #868e96;
+  --color-secondary-lighter: #e9ecef;
+  --color-secondary-lightest: #f8f9fa;
+
+  /* Accent Colors */
+  --color-accent: #ffc107;
+  --color-accent-dark: #e0a800;
+  --color-accent-light: #ffcd39;
+  --color-accent-lighter: #fff3cd;
+  --color-accent-lightest: #fffbf0;
+
+  /* Status Colors */
+  --color-success: #28a745;
+  --color-success-dark: #218838;
+  --color-success-light: #34ce57;
+  --color-success-lighter: #d4edda;
+  --color-success-lightest: #f0f9f2;
+
+  --color-error: #dc3545;
+  --color-error-dark: #c82333;
+  --color-error-light: #e4606d;
+  --color-error-lighter: #f8d7da;
+  --color-error-lightest: #fef0f1;
+
+  --color-warning: #ffc107;
+  --color-warning-dark: #e0a800;
+  --color-warning-light: #ffcd39;
+  --color-warning-lighter: #fff3cd;
+  --color-warning-lightest: #fffbf0;
+
+  --color-info: #17a2b8;
+  --color-info-dark: #138496;
+  --color-info-light: #3fc1d8;
+  --color-info-lighter: #d1ecf1;
+  --color-info-lightest: #f0f8fa;
+
+  /* Neutral Colors */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-gray-50: #f9f9f9;
+  --color-gray-100: #f5f5f5;
+  --color-gray-200: #e9e9e9;
+  --color-gray-300: #e0e0e0;
+  --color-gray-400: #d0d0d0;
+  --color-gray-500: #b0b0b0;
+  --color-gray-600: #999999;
+  --color-gray-700: #666666;
+  --color-gray-800: #444444;
+  --color-gray-900: #333333;
+
+  /* Text Colors */
+  --color-text-primary: #333333;
+  --color-text-secondary: #666666;
+  --color-text-tertiary: #999999;
+  --color-text-disabled: #b0b0b0;
+  --color-text-inverse: #ffffff;
+
+  /* Background Colors */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9f9f9;
+  --color-bg-tertiary: #f5f5f5;
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Border Colors */
+  --color-border-light: #e0e0e0;
+  --color-border-medium: #d0d0d0;
+  --color-border-dark: #b0b0b0;
+
+  /* ============================================
+     Typography System
+     ============================================ */
+  
+  /* Font Families */
+  --font-family-primary: 'Quicksand', sans-serif;
+  --font-family-secondary: 'Quicksand', sans-serif;
+  --font-family-monospace: 'Courier New', monospace;
+
+  /* Font Sizes */
+  --font-size-xs: 10px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 28px;
+  --font-size-4xl: 32px;
+
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 900;
+
+  /* Line Heights */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+  --line-height-loose: 1.8;
+
+  /* Letter Spacing */
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.02em;
+  --letter-spacing-wider: 0.05em;
+
+  /* ============================================
+     Spacing System
+     ============================================ */
+  
+  --spacing-0: 0;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+  --spacing-20: 80px;
+
+  /* ============================================
+     Border Radius
+     ============================================ */
+  
+  --radius-none: 0;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* ============================================
+     Shadows
+     ============================================ */
+  
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 10px 40px rgba(0, 0, 0, 0.15);
+  --shadow-2xl: 0 20px 60px rgba(0, 0, 0, 0.2);
+
+  /* Colored Shadows */
+  --shadow-primary: 0 4px 8px rgba(68, 180, 146, 0.3);
+  --shadow-primary-lg: 0 8px 16px rgba(68, 180, 146, 0.25);
+  --shadow-success: 0 4px 8px rgba(40, 167, 69, 0.3);
+  --shadow-error: 0 4px 8px rgba(220, 53, 69, 0.3);
+
+  /* ============================================
+     Transitions
+     ============================================ */
+  
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.3s ease;
+  --transition-slower: 0.5s ease;
+
+  /* ============================================
+     Z-Index Scale
+     ============================================ */
+  
+  --z-index-base: 0;
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1000;
+  --z-index-fixed: 1000;
+  --z-index-modal-backdrop: 10000;
+  --z-index-modal: 10001;
+  --z-index-toast: 10001;
+  --z-index-tooltip: 10002;
+}
+
+/* ============================================
+   Utility Classes - Buttons
+   ============================================ */
+
+/* Base Button Styles */
+.btn-base {
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--spacing-2) var(--spacing-4);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  text-decoration: none;
+  outline: none;
+}
+
+/* Button Variants */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-primary);
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-white);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-secondary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: var(--color-primary-lighter);
+  border-color: var(--color-primary-dark);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background-color: var(--color-gray-100);
+  color: var(--color-text-primary);
+}
+
+.btn-danger {
+  background-color: var(--color-error);
+  color: var(--color-white);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--color-error-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.btn-warning {
+  background-color: var(--color-warning);
+  color: var(--color-white);
+}
+
+.btn-warning:hover:not(:disabled) {
+  background-color: var(--color-warning-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+}
+
+.btn-info {
+  background-color: var(--color-info);
+  color: var(--color-white);
+}
+
+.btn-info:hover:not(:disabled) {
+  background-color: var(--color-info-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3);
+}
+
+.btn-success {
+  background-color: var(--color-success);
+  color: var(--color-white);
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: var(--color-success-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* Button Sizes */
+.btn-sm {
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-1) var(--spacing-3);
+  border-radius: var(--radius-sm);
+}
+
+.btn-md {
+  font-size: var(--font-size-base);
+  padding: var(--spacing-2) var(--spacing-4);
+}
+
+.btn-lg {
+  font-size: var(--font-size-lg);
+  padding: var(--spacing-3) var(--spacing-6);
+  border-radius: var(--radius-lg);
+}
+
+/* Active/Selected States */
+.btn-active,
+.btn-selected {
+  background-color: var(--color-primary-lighter);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-active:hover:not(:disabled),
+.btn-selected:hover:not(:disabled) {
+  background-color: var(--color-primary-lighter);
+  color: var(--color-primary-dark);
+}
+
+/* Disabled States */
+.btn-base:disabled,
+.btn-base[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ============================================
+   Utility Classes - Cards
+   ============================================ */
+
+.card {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.card-elevated {
+  box-shadow: var(--shadow-lg);
+}
+
+.card-elevated:hover {
+  box-shadow: var(--shadow-xl);
+}
+
+/* ============================================
+   Utility Classes - Interactive Elements
+   ============================================ */
+
+/* Hover States */
+.hover-lift:hover {
+  transform: translateY(-2px);
+  transition: transform var(--transition-base);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+  transition: transform var(--transition-base);
+}
+
+.hover-bg:hover {
+  background-color: var(--color-gray-100);
+  transition: background-color var(--transition-base);
+}
+
+.hover-primary:hover {
+  color: var(--color-primary);
+  transition: color var(--transition-base);
+}
+
+.hover-shadow:hover {
+  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--transition-base);
+}
+
+/* Active States */
+.active-primary {
+  background-color: var(--color-primary-lighter);
+  color: var(--color-primary);
+}
+
+.active-secondary {
+  background-color: var(--color-secondary-lighter);
+  color: var(--color-secondary);
+}
+
+/* Focus States */
+.focus-ring {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.focus-ring-primary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.focus-ring-secondary:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Utility Classes - Typography
+   ============================================ */
+
+.text-primary {
+  color: var(--color-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-tertiary {
+  color: var(--color-text-tertiary);
+}
+
+.text-disabled {
+  color: var(--color-text-disabled);
+}
+
+.text-inverse {
+  color: var(--color-text-inverse);
+}
+
+.text-primary-color {
+  color: var(--color-primary);
+}
+
+.text-success {
+  color: var(--color-success);
+}
+
+.text-error {
+  color: var(--color-error);
+}
+
+.text-warning {
+  color: var(--color-warning);
+}
+
+.text-info {
+  color: var(--color-info);
+}
+
+/* Font Weights */
+.font-light {
+  font-weight: var(--font-weight-light);
+}
+
+.font-normal {
+  font-weight: var(--font-weight-normal);
+}
+
+.font-medium {
+  font-weight: var(--font-weight-medium);
+}
+
+.font-semibold {
+  font-weight: var(--font-weight-semibold);
+}
+
+.font-bold {
+  font-weight: var(--font-weight-bold);
+}
+
+/* ============================================
+   Utility Classes - Spacing
+   ============================================ */
+
+/* Margin */
+.m-0 { margin: var(--spacing-0); }
+.m-1 { margin: var(--spacing-1); }
+.m-2 { margin: var(--spacing-2); }
+.m-3 { margin: var(--spacing-3); }
+.m-4 { margin: var(--spacing-4); }
+.m-5 { margin: var(--spacing-5); }
+.m-6 { margin: var(--spacing-6); }
+
+/* Padding */
+.p-0 { padding: var(--spacing-0); }
+.p-1 { padding: var(--spacing-1); }
+.p-2 { padding: var(--spacing-2); }
+.p-3 { padding: var(--spacing-3); }
+.p-4 { padding: var(--spacing-4); }
+.p-5 { padding: var(--spacing-5); }
+.p-6 { padding: var(--spacing-6); }
+
+/* Gap */
+.gap-1 { gap: var(--spacing-1); }
+.gap-2 { gap: var(--spacing-2); }
+.gap-3 { gap: var(--spacing-3); }
+.gap-4 { gap: var(--spacing-4); }
+.gap-5 { gap: var(--spacing-5); }
+.gap-6 { gap: var(--spacing-6); }
+
+/* ============================================
+   Utility Classes - Border Radius
+   ============================================ */
+
+.rounded-none { border-radius: var(--radius-none); }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: var(--radius-full); }
+
+/* ============================================
+   Utility Classes - Shadows
+   ============================================ */
+
+.shadow-xs { box-shadow: var(--shadow-xs); }
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+.shadow-2xl { box-shadow: var(--shadow-2xl); }
+.shadow-none { box-shadow: none; }
+
+/* ============================================
+   Responsive Typography
+   ============================================ */
+
+@media (max-width: 768px) {
+  :root {
+    --font-size-xs: 9px;
+    --font-size-sm: 11px;
+    --font-size-base: 13px;
+    --font-size-md: 15px;
+    --font-size-lg: 17px;
+    --font-size-xl: 19px;
+    --font-size-2xl: 22px;
+    --font-size-3xl: 26px;
+    --font-size-4xl: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --font-size-xs: 8px;
+    --font-size-sm: 10px;
+    --font-size-base: 12px;
+    --font-size-md: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 18px;
+    --font-size-2xl: 20px;
+    --font-size-3xl: 24px;
+    --font-size-4xl: 26px;
+  }
+}
+
+/* ============================================
+   Dark Mode Support (Optional)
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-primary: #1a1a1a;
+    --color-bg-secondary: #242424;
+    --color-bg-tertiary: #2a2a2a;
+    --color-text-primary: #e0e0e0;
+    --color-text-secondary: #b0b0b0;
+    --color-text-tertiary: #808080;
+    --color-border-light: #333333;
+    --color-border-medium: #404040;
+    --color-border-dark: #505050;
+  }
+}
+

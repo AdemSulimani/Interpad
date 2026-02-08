@@ -1,0 +1,426 @@
+.formatting-toolbar {
+  width: 100%;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.formatting-toolbar-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #e0e0e0 transparent;
+}
+
+.formatting-toolbar-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.formatting-toolbar-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.formatting-toolbar-container::-webkit-scrollbar-thumb {
+  background-color: #e0e0e0;
+  border-radius: 2px;
+}
+
+.formatting-toolbar-container::-webkit-scrollbar-thumb:hover {
+  background-color: #ccc;
+}
+
+/* Toolbar Groups */
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Toolbar Divider */
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background-color: #e0e0e0;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* Toolbar Buttons */
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #666666;
+  transition: all 0.2s;
+  padding: 0;
+  position: relative;
+}
+
+.toolbar-btn:hover {
+  background-color: #f5f5f5;
+  color: #44b492;
+}
+
+.toolbar-btn:active {
+  transform: scale(0.95);
+}
+
+.toolbar-btn.active {
+  background-color: #e8f5f0;
+  color: #44b492;
+}
+
+.toolbar-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Dropdowns */
+.toolbar-dropdown {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333333;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 6px 28px 6px 10px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%23666666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  min-width: 120px;
+}
+
+.toolbar-dropdown:hover {
+  border-color: #44b492;
+  background-color: #f9f9f9;
+}
+
+.toolbar-dropdown:focus {
+  border-color: #44b492;
+  box-shadow: 0 0 0 3px rgba(68, 180, 146, 0.1);
+}
+
+.font-select {
+  min-width: 140px;
+}
+
+.font-size-select {
+  min-width: 70px;
+  padding-right: 24px;
+}
+
+/* Color Picker Buttons */
+.color-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.color-picker-btn {
+  position: relative;
+  padding: 4px;
+}
+
+.color-indicator {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
+
+.text-color-indicator {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.bg-color-indicator {
+  border: 1px solid #ccc;
+}
+
+/* ============================================
+   Mobile Menu Toggle
+   ============================================ */
+.toolbar-mobile-toggle {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666666;
+  transition: all 0.2s;
+  margin: 8px auto;
+}
+
+.toolbar-mobile-toggle:hover {
+  background-color: #f5f5f5;
+  color: #44b492;
+  border-color: #44b492;
+}
+
+.toolbar-mobile-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ============================================
+   Mobile Dropdown Menu
+   ============================================ */
+.toolbar-mobile-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--color-bg-primary);
+  border-top: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-lg);
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-slow), opacity var(--transition-base);
+  opacity: 0;
+  z-index: 1000;
+}
+
+.toolbar-mobile-menu.mobile-menu-open {
+  max-height: 500px;
+  opacity: 1;
+  overflow-y: auto;
+}
+
+.toolbar-mobile-menu-content {
+  padding: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.mobile-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.mobile-menu-section-title {
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  margin-bottom: var(--spacing-1);
+}
+
+.mobile-menu-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-2);
+}
+
+.mobile-btn {
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-2);
+  height: auto;
+  min-height: 60px;
+}
+
+.mobile-btn span {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.mobile-menu-dropdowns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.mobile-dropdown {
+  width: 100%;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 1024px) {
+  .formatting-toolbar-container {
+    padding: 8px 16px;
+    gap: 6px;
+  }
+
+  .toolbar-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .toolbar-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .toolbar-dropdown {
+    font-size: 13px;
+    padding: 5px 24px 5px 8px;
+    min-width: 100px;
+  }
+
+  .font-select {
+    min-width: 120px;
+  }
+
+  .font-size-select {
+    min-width: 60px;
+  }
+}
+
+@media (max-width: 768px) {
+  .formatting-toolbar {
+    top: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  /* Hide desktop toolbar on mobile */
+  .toolbar-desktop {
+    display: none;
+  }
+
+  /* Show mobile toggle - centered */
+  .toolbar-mobile-toggle {
+    display: flex;
+    margin: 8px auto;
+    align-self: center;
+  }
+
+  /* Show mobile menu */
+  .toolbar-mobile-menu {
+    display: block;
+  }
+
+  .formatting-toolbar-container {
+    padding: 6px 12px;
+    gap: 4px;
+  }
+
+  .toolbar-divider {
+    height: 20px;
+    margin: 0 2px;
+  }
+
+  .toolbar-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .toolbar-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .toolbar-dropdown {
+    font-size: 12px;
+    padding: 4px 20px 4px 6px;
+    min-width: 80px;
+  }
+
+  .font-select {
+    min-width: 100px;
+  }
+
+  .font-size-select {
+    min-width: 50px;
+    padding-right: 20px;
+  }
+
+  .color-indicator {
+    width: 10px;
+    height: 10px;
+    bottom: 3px;
+    right: 3px;
+  }
+
+  /* Hide some less essential buttons on mobile */
+  .toolbar-group:nth-child(9), /* Indent/Outdent */
+  .toolbar-group:nth-child(11) /* Undo/Redo */ {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .formatting-toolbar-container {
+    padding: 6px 8px;
+  }
+
+  .toolbar-dropdown {
+    font-size: 11px;
+    padding: 3px 18px 3px 5px;
+    min-width: 70px;
+  }
+
+  .font-select {
+    min-width: 90px;
+  }
+
+  .font-size-select {
+    min-width: 45px;
+    padding-right: 18px;
+  }
+
+  /* Hide more buttons on very small screens */
+  .toolbar-group:nth-child(7) /* Alignment buttons */ {
+    display: none;
+  }
+}
+
+/* Smooth scrolling for horizontal overflow */
+.formatting-toolbar-container {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+.toolbar-btn:focus-visible {
+  outline: 2px solid #44b492;
+  outline-offset: 2px;
+}
+
+.toolbar-dropdown:focus-visible {
+  outline: 2px solid #44b492;
+  outline-offset: 2px;
+}
+
