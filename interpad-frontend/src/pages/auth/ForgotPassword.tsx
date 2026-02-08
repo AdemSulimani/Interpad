@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import './style/ForgotPassword.css';
 import { Link } from 'react-router-dom';
-import { useForgotPassword } from '../../hooks';
 
 const ForgotPassword = () => {
-  const { email, setEmail, handleSubmit } = useForgotPassword();
+  const [email, setEmail] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Frontend only - no logic implementation
+  };
 
   return (
     <div className="auth-page">
