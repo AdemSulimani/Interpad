@@ -1,0 +1,154 @@
+.auth-page {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  padding: 40px 20px;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 450px;
+}
+
+.auth-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 40px;
+}
+
+.auth-heading {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: #333333;
+  text-align: center;
+  margin: 0 0 20px 0;
+}
+
+.verification-description {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  color: #666666;
+  text-align: center;
+  margin: 0 0 30px 0;
+  line-height: 1.5;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.verification-codes {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.code-input {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  text-align: center;
+  width: 50px;
+  height: 60px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.3s ease;
+  background-color: #ffffff;
+}
+
+.code-input:focus {
+  border-color: #44b492;
+}
+
+.code-input::-webkit-inner-spin-button,
+.code-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.code-input[type="text"] {
+  -moz-appearance: textfield;
+}
+
+.auth-button {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #44b492;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 24px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 8px;
+}
+
+.auth-button:hover {
+  background-color: #369d7a;
+}
+
+.auth-button:active {
+  transform: scale(0.98);
+}
+
+.auth-footer {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  color: #666666;
+  text-align: center;
+  margin-top: 24px;
+}
+
+.resend-link {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #44b492;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.resend-link:hover {
+  color: #369d7a;
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .auth-card {
+    padding: 30px 24px;
+  }
+
+  .auth-heading {
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+
+  .verification-description {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .verification-codes {
+    gap: 8px;
+  }
+
+  .code-input {
+    width: 45px;
+    height: 55px;
+    font-size: 20px;
+  }
+}
+

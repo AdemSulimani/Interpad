@@ -1,4 +1,5 @@
 import './Header.css';
+import { Link } from 'react-router-dom';
 import { useMenu } from '../hooks/useMenu';
 
 const Header = () => {
@@ -24,7 +25,7 @@ const Header = () => {
           
           <div className="header-right">
             <button className="btn-get-started">Get Started</button>
-            <button className="btn-login">Login</button>
+            <Link to="/login" className="btn-login">Login</Link>
           </div>
           
           <button className="hamburger-menu" onClick={toggleMenu}>
@@ -51,7 +52,7 @@ const Header = () => {
         </nav>
         <div className="sidebar-buttons">
           <button className="btn-get-started">Get Started</button>
-          <button className="btn-login">Login</button>
+          <Link to="/login" className="btn-login" onClick={toggleMenu}>Login</Link>
         </div>
       </div>
       
