@@ -297,8 +297,9 @@
   }
 
   .sidebar-toggle-btn.sidebar-open {
-    left: calc(100% - 52px);
-    top: 100px;
+    left: auto;
+    right: 12px;
+    top: 16px;
     background-color: #ffffff;
     z-index: 1004;
   }
@@ -340,8 +341,9 @@
   }
 
   .sidebar-toggle-btn.sidebar-open {
-    left: calc(100% - 48px);
-    top: 90px;
+    left: auto;
+    right: 8px;
+    top: 16px;
     z-index: 1004;
   }
 

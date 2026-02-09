@@ -71,7 +71,7 @@
 
 @media (max-width: 768px) {
   .stats-section {
-    padding: 0 20px 30px 20px;
+    padding: 20px 20px 50px 20px;
   }
   
   .stats-container {
@@ -91,6 +91,17 @@
   .stat-text {
     text-align: center;
     font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stat-text {
+    font-size: 15px;
   }
 }
 
