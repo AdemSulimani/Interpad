@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import './style/VerificationCode.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { verifyAuthCode, resendVerificationCode } from '../../services';
 
-const VerificationCode = () => {
+type VerificationCodeProps = {
+  onVerified: () => void;
+};
+
+const VerificationCode = ({ onVerified }: VerificationCodeProps) => {
   const [codes, setCodes] = useState<string[]>(['', '', '', '', '', '']);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleCodeChange = (index: number, value: string) => {
     // Allow only single digit
@@ -35,13 +43,67 @@ const VerificationCode = () => {
     setCodes(newCodes);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Frontend only - no logic implementation
+
+    setError(null);
+
+    const code = codes.join('');
+    if (code.length !== 6) {
+      setError('Please enter the 6-digit code.');
+      return;
+    }
+
+    const pendingEmail = localStorage.getItem('pendingEmail');
+    if (!pendingEmail) {
+      setError('No pending verification found. Please log in again.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const response = await verifyAuthCode({
+        email: pendingEmail,
+        code,
+      });
+
+      // Nëse verifikimi është i suksesshëm, ruaj token-in dhe pastro pending
+      if (response.token) {
+        // Për thjeshtësi, ruajmë gjithmonë në localStorage
+        localStorage.setItem('token', response.token);
+      }
+
+      localStorage.removeItem('pendingEmail');
+      localStorage.removeItem('pendingUserId');
+
+      // Informo App-in që verifikimi përfundoi
+      onVerified();
+
+      // Shko te editori pas verifikimit
+      navigate('/editor');
+    } catch (err: any) {
+      setError(err.message || 'Verification failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleResend = () => {
-    // Frontend only - no logic implementation
+  const handleResend = async () => {
+    setError(null);
+
+    const pendingEmail = localStorage.getItem('pendingEmail');
+    if (!pendingEmail) {
+      setError('No pending verification found. Please log in again.');
+      return;
+    }
+
+    try {
+      await resendVerificationCode({ email: pendingEmail });
+      setError('A new verification code has been sent to your email.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend verification code.');
+    }
   };
 
   return (
@@ -73,8 +135,10 @@ const VerificationCode = () => {
               ))}
             </div>
 
-            <button type="submit" className="auth-button">
-              Verify
+            {error && <p className="auth-error">{error}</p>}
+
+            <button type="submit" className="auth-button" disabled={isSubmitting}>
+              {isSubmitting ? 'Verifying...' : 'Verify'}
             </button>
           </form>
 

@@ -3,7 +3,12 @@ import './style/Login.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { loginUser } from '../../services';
 
-const Login = () => {
+type LoginProps = {
+  onRequireVerification: (email: string, userId?: string) => void;
+  onAuthenticated: () => void;
+};
+
+const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,16 +26,28 @@ const Login = () => {
     try {
       const response = await loginUser({ email, password });
 
+      // Nëse backend kërkon verifikim me kod (2FA step)
+      if (response.requiresVerification) {
+        // Lajmëro App-in që ky user ka nevojë për verifikim
+        onRequireVerification(email, response.userId);
+
+        // Shko te faqja për verifikimin e kodit
+        navigate('/verification-code');
+        return;
+      }
+
+      // Nëse nuk kërkohet verifikim – ruaj token-in dhe shko te editori
       if (response.token) {
-        // ruaj token-in në localStorage ose sessionStorage
         if (rememberMe) {
           localStorage.setItem('token', response.token);
         } else {
           sessionStorage.setItem('token', response.token);
         }
+
+        // Lajmëro App-in që user-i është i autentikuar
+        onAuthenticated();
       }
 
-      // redirect te editori ose home – për tani po shkojmë te /editor
       navigate('/editor');
     } catch (err: any) {
       setError(err.message || 'An error occurred during login.');

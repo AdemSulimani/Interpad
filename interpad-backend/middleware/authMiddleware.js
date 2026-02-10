@@ -17,6 +17,19 @@ const loginRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter për tentativat e verify-code
+// p.sh. maksimumi 5 tentativa në 15 minuta nga e njëjta IP
+const verifyCodeRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minuta
+  max: 5,
+  message: {
+    success: false,
+    message: 'Too many verification attempts. Please try again later.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Middleware për verifikimin e JWT token-it
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -44,6 +57,7 @@ function verifyJWT(req, res, next) {
 
 module.exports = {
   loginRateLimiter,
+  verifyCodeRateLimiter,
   verifyJWT,
 };
 

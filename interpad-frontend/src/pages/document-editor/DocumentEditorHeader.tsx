@@ -1,7 +1,21 @@
 import './style/DocumentEditorHeader.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const DocumentEditorHeader = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Fshi token-at dhe çdo pending verification nga storage
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+    localStorage.removeItem('pendingEmail');
+    localStorage.removeItem('pendingUserId');
+
+    // Riload faqen që App.tsx të ri-inicializojë state-in nga storage
+    navigate('/login');
+    window.location.reload();
+  };
+
   return (
     <header className="document-editor-header">
       <div className="document-editor-header-container">
@@ -69,6 +83,9 @@ const DocumentEditorHeader = () => {
                   <circle cx="12" cy="7" r="4"/>
                 </svg>
               </div>
+            </button>
+            <button className="document-editor-logout-btn" onClick={handleLogout}>
+              Logout
             </button>
           </div>
         </div>

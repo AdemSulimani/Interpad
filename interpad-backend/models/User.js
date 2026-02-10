@@ -28,6 +28,21 @@ const userSchema = new mongoose.Schema(
       minlength: [6, 'Password must be at least 6 characters long'],
       // NOTE: Këtu ruajmë vetëm HASH-in e password-it, jo plain text
     },
+    // Kodi 6-shifror për verifikim pas login/register
+    verificationCode: {
+      type: String,
+      default: null,
+    },
+    // Koha kur skadon kodi i verifikimit (p.sh. pas 10 minutave)
+    verificationCodeExpires: {
+      type: Date,
+      default: null,
+    },
+    // A është verifikuar përdoruesi me kod (opsionale)
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true, // createdAt & updatedAt automatikisht

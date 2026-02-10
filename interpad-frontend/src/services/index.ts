@@ -14,6 +14,8 @@ export interface AuthResponse {
   message: string;
   user?: AuthUser;
   token?: string;
+  requiresVerification?: boolean;
+  userId?: string;
 }
 
 export async function registerUser(payload: {
@@ -55,6 +57,45 @@ export async function loginUser(payload: {
 
   if (!res.ok) {
     throw new Error(data.message || 'Login failed');
+  }
+
+  return data;
+}
+
+export async function verifyAuthCode(payload: {
+  email: string;
+  code: string;
+}) {
+  const res = await fetch(`${API_BASE_URL}/auth/verify-code`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await res.json()) as AuthResponse;
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Verification failed');
+  }
+
+  return data;
+}
+
+export async function resendVerificationCode(payload: { email: string }) {
+  const res = await fetch(`${API_BASE_URL}/auth/resend-code`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await res.json()) as AuthResponse;
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to resend code');
   }
 
   return data;
