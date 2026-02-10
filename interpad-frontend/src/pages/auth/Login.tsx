@@ -1,16 +1,42 @@
 import { useState } from 'react';
 import './style/Login.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { loginUser } from '../../services';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Frontend only - no logic implementation
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await loginUser({ email, password });
+
+      if (response.token) {
+        // ruaj token-in në localStorage ose sessionStorage
+        if (rememberMe) {
+          localStorage.setItem('token', response.token);
+        } else {
+          sessionStorage.setItem('token', response.token);
+        }
+      }
+
+      // redirect te editori ose home – për tani po shkojmë te /editor
+      navigate('/editor');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during login.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleGoogleLogin = () => {
@@ -80,8 +106,10 @@ const Login = () => {
               </Link>
             </div>
 
-            <button type="submit" className="auth-button">
-              Login
+            {error && <p className="auth-error">{error}</p>}
+
+            <button type="submit" className="auth-button" disabled={isSubmitting}>
+              {isSubmitting ? 'Logging in...' : 'Login'}
             </button>
           </form>
 

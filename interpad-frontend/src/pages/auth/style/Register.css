@@ -191,6 +191,28 @@
   height: 20px;
 }
 
+.auth-error {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: #ffe6e6;
+  border: 1px solid #ffb3b3;
+  color: #b3261e;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+}
+
+.auth-success {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: #e6f6f0;
+  border: 1px solid #a5e0c8;
+  color: #137a4b;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+}
+
 @media (max-width: 768px) {
   .auth-card {
     padding: 30px 24px;

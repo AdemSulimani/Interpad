@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import './style/Register.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { registerUser } from '../../services';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -10,10 +11,42 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Frontend only - no logic implementation
+
+    if (!acceptTerms) {
+      setError('You must accept the terms and policies.');
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await registerUser({
+        name,
+        email,
+        password,
+        confirmPassword,
+      });
+
+      setSuccess(response.message || 'Account created successfully.');
+
+      // opsionale: redirect pas pak sekondash
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during registration.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleGoogleRegister = () => {
@@ -121,8 +154,11 @@ const Register = () => {
               </label>
             </div>
 
-            <button type="submit" className="auth-button">
-              Register
+            {error && <p className="auth-error">{error}</p>}
+            {success && <p className="auth-success">{success}</p>}
+
+            <button type="submit" className="auth-button" disabled={isSubmitting}>
+              {isSubmitting ? 'Registering...' : 'Register'}
             </button>
           </form>
 
