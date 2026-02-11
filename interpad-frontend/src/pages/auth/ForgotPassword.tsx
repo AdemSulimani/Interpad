@@ -1,13 +1,29 @@
 import { useState } from 'react';
 import './style/ForgotPassword.css';
 import { Link } from 'react-router-dom';
+import { forgotPassword } from '../../services';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Frontend only - no logic implementation
+    
+    setError(null);
+    setSuccess(false);
+    setIsSubmitting(true);
+
+    try {
+      await forgotPassword({ email });
+      setSuccess(true);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -21,6 +37,18 @@ const ForgotPassword = () => {
           </p>
 
           <form onSubmit={handleSubmit} className="auth-form">
+            {error && (
+              <div className="error-message" style={{ color: 'red', marginBottom: '1rem' }}>
+                {error}
+              </div>
+            )}
+            
+            {success && (
+              <div className="success-message" style={{ color: 'green', marginBottom: '1rem' }}>
+                Password reset instructions have been sent to your email.
+              </div>
+            )}
+
             <div className="form-group">
               <input
                 type="email"
@@ -29,11 +57,17 @@ const ForgotPassword = () => {
                 placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isSubmitting || success}
               />
             </div>
 
-            <button type="submit" className="auth-button">
-              Reset password
+            <button 
+              type="submit" 
+              className="auth-button"
+              disabled={isSubmitting || success}
+            >
+              {isSubmitting ? 'Sending...' : 'Reset password'}
             </button>
           </form>
 

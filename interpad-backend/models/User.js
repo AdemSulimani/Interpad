@@ -23,9 +23,31 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: function() {
+        // Password është i detyrueshëm vetëm nëse nuk është Google user
+        return !this.googleId;
+      },
       minlength: [6, 'Password must be at least 6 characters long'],
       // NOTE: Këtu ruajmë vetëm HASH-in e password-it, jo plain text
+    },
+    // Google OAuth fields
+    googleId: {
+      type: String,
+      default: null,
+      unique: true,
+      sparse: true, // Lejon null values por garanton uniqueness për non-null values
+    },
+    isGoogleUser: {
+      type: Boolean,
+      default: false, // Për dallim midis Google users dhe email/password users
+    },
+    profilePicture: {
+      type: String,
+      default: null, // Foto nga Google profile
+    },
+    companyType: {
+      type: String,
+      default: null,
     },
     // Kodi 6-shifror për verifikim pas login/register
     verificationCode: {
@@ -41,6 +63,16 @@ const userSchema = new mongoose.Schema(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    // Token për reset password (hash)
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    // Koha kur skadon token-i për reset password (1 orë)
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
     },
   },
   {

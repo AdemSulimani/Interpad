@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './style/Login.css';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { loginUser } from '../../services';
 
 type LoginProps = {
@@ -16,6 +16,17 @@ const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Kontrollo nëse ka error në URL (p.sh. nga Google callback)
+  useEffect(() => {
+    const urlError = searchParams.get('error');
+    if (urlError) {
+      setError(decodeURIComponent(urlError));
+      // Pastro error nga URL
+      navigate('/login', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +68,9 @@ const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
   };
 
   const handleGoogleLogin = () => {
-    // Frontend only - no logic implementation
+    // Ridrejto te backend route për Google OAuth
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.location.href = `${API_BASE_URL}/api/auth/google`;
   };
 
   const togglePasswordVisibility = () => {

@@ -50,7 +50,9 @@ const Register = () => {
   };
 
   const handleGoogleRegister = () => {
-    // Frontend only - no logic implementation
+    // Ridrejto te backend route për Google OAuth
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.location.href = `${API_BASE_URL}/api/auth/google`;
   };
 
   const togglePasswordVisibility = () => {

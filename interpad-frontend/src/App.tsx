@@ -4,7 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import LandingPage from './pages/landing-page/LandingPage';
-import { Login, Register, ForgotPassword, VerificationCode } from './pages/auth';
+import { Login, Register, ForgotPassword, VerificationCode, ResetPassword, GoogleCallback, LinkGoogleAccount } from './pages/auth';
 import { DocumentEditorPage } from './pages/document-editor';
 
 function App() {
@@ -71,6 +71,31 @@ function App() {
       />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route
+        path="/auth/google/callback"
+        element={
+          <GoogleCallback
+            onAuthenticated={() => {
+              setIsAuthenticated(true);
+              setNeedsVerification(false);
+              setPendingUserEmail(null);
+            }}
+          />
+        }
+      />
+      <Route
+        path="/auth/google/link-account"
+        element={
+          <LinkGoogleAccount
+            onAuthenticated={() => {
+              setIsAuthenticated(true);
+              setNeedsVerification(false);
+              setPendingUserEmail(null);
+            }}
+          />
+        }
+      />
       <Route
         path="/verification-code"
         element={
