@@ -33,8 +33,8 @@ const GoogleCallback = ({ onAuthenticated }: GoogleCallbackProps) => {
       // Lajmëro App-in që user-i është i autentikuar
       onAuthenticated();
       
-      // Ridrejto te editor
-      navigate('/editor', { replace: true });
+      // Ridrejto te faqja Docs
+      navigate('/docs', { replace: true });
     } else if (success === 'false' || error) {
       // Nëse ka error, ridrejto te login me mesazh error
       const errorMessage = error || 'Google authentication failed';

@@ -59,7 +59,7 @@ const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
         onAuthenticated();
       }
 
-      navigate('/editor');
+      navigate('/docs');
     } catch (err: any) {
       setError(err.message || 'An error occurred during login.');
     } finally {

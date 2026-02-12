@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import LandingPage from './pages/landing-page/LandingPage';
 import { Login, Register, ForgotPassword, VerificationCode, ResetPassword, GoogleCallback, LinkGoogleAccount } from './pages/auth';
 import { DocumentEditorPage } from './pages/document-editor';
+import { DocsHomePage } from './pages/docs-home';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -109,6 +110,12 @@ function App() {
               localStorage.removeItem('pendingUserId');
             }}
           />
+        }
+      />
+      <Route
+        path="/docs"
+        element={
+          isAuthenticated ? <DocsHomePage /> : <Navigate to="/login" replace />
         }
       />
       <Route
