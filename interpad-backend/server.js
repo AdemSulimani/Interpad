@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
@@ -42,6 +43,13 @@ app.get('/', (req, res) => {
 // Auth routes
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
+
+// Upload routes (imazhe për dokumente)
+const uploadRoutes = require('./routes/uploadRoutes');
+app.use('/api/upload', uploadRoutes);
+
+// Shërbej skedarët e ngarkuar statikisht (URL për imazhet e ruajtura)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 404 handler për çdo route që nuk u gjet
 app.use(notFound);

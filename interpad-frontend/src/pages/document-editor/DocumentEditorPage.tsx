@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import './style/DocumentEditorStyles.css';
 import './style/DocumentEditorPage.css';
+import { DocumentEditorProvider, useDocumentEditor } from './context/DocumentEditorContext';
 import DocumentEditorHeader from './DocumentEditorHeader';
 import FormattingToolbar from './FormattingToolbar';
 import EditorArea from './EditorArea';
@@ -8,7 +10,17 @@ import DocumentSidebar from './DocumentSidebar';
 import StatusBar from './StatusBar';
 import { AutoSaveIndicator, ConnectionStatus } from './VisualIndicators';
 
-const DocumentEditorPage = () => {
+const DocumentEditorPageInner = () => {
+  const { documentId } = useParams<{ documentId?: string }>();
+  const { openNewDocument } = useDocumentEditor();
+
+  // Kur hapet /editor (pa documentId), vendos në state dokument të ri. Kur ngarkohet /editor/:id, state përditësohet nga API (hapet më vonë).
+  useEffect(() => {
+    if (documentId === undefined) {
+      openNewDocument();
+    }
+  }, [documentId, openNewDocument]);
+
   // Sidebar closed by default on mobile, open on desktop
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     return window.innerWidth > 768;
@@ -141,6 +153,12 @@ const DocumentEditorPage = () => {
     </div>
   );
 };
+
+const DocumentEditorPage = () => (
+  <DocumentEditorProvider>
+    <DocumentEditorPageInner />
+  </DocumentEditorProvider>
+);
 
 export default DocumentEditorPage;
 

@@ -1,7 +1,10 @@
 import './style/DocumentEditorHeader.css';
 import { Link } from 'react-router-dom';
+import { useDocumentEditor } from './context/DocumentEditorContext';
 
 const DocumentEditorHeader = () => {
+  const { document, setTitle } = useDocumentEditor();
+
   return (
     <header className="document-editor-header">
       <div className="document-editor-header-container">
@@ -18,23 +21,23 @@ const DocumentEditorHeader = () => {
             type="text"
             className="document-name-input"
             placeholder="Untitled Document"
-            defaultValue="Untitled Document"
+            value={document.title}
+            onChange={(e) => setTitle(e.target.value)}
+            aria-label="Document title"
           />
         </div>
 
         {/* Right: Action Buttons & User Profile */}
         <div className="document-editor-header-right">
           <div className="document-editor-actions">
-            <button className="document-editor-btn document-editor-btn-back" title="Back">
+            <Link to="/docs" className="document-editor-btn document-editor-btn-back" title="Back to docs">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
               </svg>
-            </button>
+            </Link>
             <button className="document-editor-btn document-editor-btn-save" title="Save">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                <polyline points="17 21 17 13 7 13 7 21"/>
-                <polyline points="7 3 7 8 15 8"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
               </svg>
             </button>
             <button className="document-editor-btn document-editor-btn-share" title="Share">
@@ -51,12 +54,6 @@ const DocumentEditorHeader = () => {
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
                 <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-            </button>
-            <button className="document-editor-btn document-editor-btn-settings" title="Settings">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
               </svg>
             </button>
           </div>

@@ -1,6 +1,36 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+export interface UploadImageResponse {
+  success: boolean;
+  url?: string;
+  filename?: string;
+  message?: string;
+}
+
+/** Ngarkon një skedar imazh te backend dhe kthen URL-në e imazhit. */
+export async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const res = await fetch(`${API_BASE_URL}/api/upload/image`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  const data = (await res.json()) as UploadImageResponse;
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Ngarkimi dështoi.');
+  }
+
+  if (!data.url) {
+    throw new Error('Serveri nuk ktheu URL.');
+  }
+
+  return data.url;
+}
+
 export interface AuthUser {
   id: string;
   name: string;
