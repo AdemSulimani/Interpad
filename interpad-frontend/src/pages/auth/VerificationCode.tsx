@@ -80,8 +80,8 @@ const VerificationCode = ({ onVerified }: VerificationCodeProps) => {
       // Informo App-in që verifikimi përfundoi
       onVerified();
 
-      // Shko te editori pas verifikimit
-      navigate('/editor');
+      // Shko te faqja Docs pas verifikimit
+      navigate('/docs');
     } catch (err: any) {
       setError(err.message || 'Verification failed. Please try again.');
     } finally {

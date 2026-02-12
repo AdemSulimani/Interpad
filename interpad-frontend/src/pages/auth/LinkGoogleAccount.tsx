@@ -49,11 +49,11 @@ const LinkGoogleAccount = ({ onAuthenticated }: LinkGoogleAccountProps) => {
         // Lajmëro App-in që user-i është i autentikuar
         onAuthenticated();
 
-        // Nëse ka redirectUrl, përdor atë, përndryshe shko te editor
+        // Nëse ka redirectUrl, përdor atë, përndryshe shko te Docs
         if (response.redirectUrl) {
           window.location.href = response.redirectUrl;
         } else {
-          navigate('/editor', { replace: true });
+          navigate('/docs', { replace: true });
         }
       } else {
         setError(response.message || 'Failed to link Google account');

@@ -1,21 +1,7 @@
 import './style/DocumentEditorHeader.css';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const DocumentEditorHeader = () => {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    // Fshi token-at dhe çdo pending verification nga storage
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('token');
-    localStorage.removeItem('pendingEmail');
-    localStorage.removeItem('pendingUserId');
-
-    // Riload faqen që App.tsx të ri-inicializojë state-in nga storage
-    navigate('/login');
-    window.location.reload();
-  };
-
   return (
     <header className="document-editor-header">
       <div className="document-editor-header-container">
@@ -72,20 +58,6 @@ const DocumentEditorHeader = () => {
                 <circle cx="12" cy="12" r="3"/>
                 <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
               </svg>
-            </button>
-          </div>
-          
-          <div className="document-editor-user-profile">
-            <button className="user-avatar-btn" title="User Profile">
-              <div className="user-avatar">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
-                </svg>
-              </div>
-            </button>
-            <button className="document-editor-logout-btn" onClick={handleLogout}>
-              Logout
             </button>
           </div>
         </div>
