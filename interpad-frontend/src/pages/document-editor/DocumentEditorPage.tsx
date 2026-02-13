@@ -19,12 +19,18 @@ const LEAVE_CONFIRM_MESSAGE = 'A jeni të sigurt që dëshironi të dilni? Nuk i
 const DocumentEditorPageInner = () => {
   const { documentId } = useParams<{ documentId?: string }>();
   const navigate = useNavigate();
-  const { openNewDocument, hasUnsavedChanges, setDocument } = useDocumentEditor();
+  const { openNewDocument, hasUnsavedChanges, setDocument, saveStatus, document: currentDocument, clearUnsavedChanges } = useDocumentEditor();
   const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [documentLoadError, setDocumentLoadError] = useState<string | null>(null);
   const [isLoadingDocument, setIsLoadingDocument] = useState(false);
 
-  const blocker = useBlocker(hasUnsavedChanges);
+  // Hapi 4: Përmirëso logjikën e useBlocker
+  // Kontrollo nëse save-i është duke u procesuar ose sapo u përfundua
+  // Nëse save-i sapo u përfundua me sukses (saveStatus === 'saved'), mos shfaq popup-in
+  // Ose përdor saveStatus për të kontrolluar nëse save-i është duke u procesuar (saveStatus === 'saving')
+  // Nëse save-i është duke u procesuar ose sapo u përfundua, hasUnsavedChanges nuk duhet të aktivizojë blocker
+  const shouldBlockNavigation = hasUnsavedChanges && saveStatus !== 'saving' && saveStatus !== 'saved';
+  const blocker = useBlocker(shouldBlockNavigation);
 
   const showLeaveModal = showBackConfirm || blocker.state === 'blocked';
 
@@ -46,12 +52,14 @@ const DocumentEditorPageInner = () => {
   }, [blocker]);
 
   const onBackToDocs = useCallback(() => {
-    if (hasUnsavedChanges) {
+    // Hapi 4: Kontrollo saveStatus para se të shfaqësh popup
+    // Nëse save-i është duke u procesuar ose sapo u përfundua, mos shfaq popup
+    if (hasUnsavedChanges && saveStatus !== 'saving' && saveStatus !== 'saved') {
       setShowBackConfirm(true);
     } else {
       navigate('/docs');
     }
-  }, [hasUnsavedChanges, navigate]);
+  }, [hasUnsavedChanges, saveStatus, navigate]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -62,6 +70,20 @@ const DocumentEditorPageInner = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
+
+  // Hapi 5: Trajto navigimin pas save
+  // Përdor useEffect që kontrollon saveStatus === 'saved' dhe vendos hasUnsavedChanges = false
+  // nëse është dokument i ri (currentDocument.id nuk është null pas save)
+  // Kjo siguron që hasUnsavedChanges është false para navigimit
+  useEffect(() => {
+    // Nëse save-i sapo u përfundua me sukses dhe dokumenti ka id (nuk është më dokument i ri)
+    // sigurohu që hasUnsavedChanges është false
+    if (saveStatus === 'saved' && currentDocument.id != null && hasUnsavedChanges) {
+      // Kjo është një siguri shtesë për të siguruar që hasUnsavedChanges është false
+      // pas save të suksesshëm për dokumentin e ri
+      clearUnsavedChanges();
+    }
+  }, [saveStatus, currentDocument.id, hasUnsavedChanges, clearUnsavedChanges]);
 
   // Kur hapet /editor (pa id ose "new") → dokument i ri. Kur /editor/:documentId → load nga API.
   useEffect(() => {
@@ -128,24 +150,24 @@ const DocumentEditorPageInner = () => {
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
+    if (!window.document.fullscreenElement) {
+      window.document.documentElement.requestFullscreen().catch((err) => {
         console.error('Error attempting to enable fullscreen:', err);
       });
     } else {
-      document.exitFullscreen();
+      window.document.exitFullscreen();
     }
   };
 
   // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(!!window.document.fullscreenElement);
     };
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    window.document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
 

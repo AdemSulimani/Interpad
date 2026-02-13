@@ -217,10 +217,299 @@ const FormattingToolbar = () => {
     e.preventDefault();
   }, []);
 
+  /**
+   * Konverton ngjyrë RGB/RGBA në hex format
+   */
+  const rgbToHex = (rgb: string): string | null => {
+    const rgbMatch = rgb.match(/\d+/g);
+    if (rgbMatch && rgbMatch.length >= 3) {
+      const r = parseInt(rgbMatch[0], 10);
+      const g = parseInt(rgbMatch[1], 10);
+      const b = parseInt(rgbMatch[2], 10);
+      return `#${[r, g, b].map(x => {
+        const hex = x.toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+      }).join('')}`;
+    }
+    return null;
+  };
+
+  /**
+   * Kontrollon nëse një ngjyrë është default/transparent dhe nuk duhet të ruhet
+   */
+  const isDefaultColor = (color: string): boolean => {
+    if (!color) return true;
+    const lower = color.toLowerCase().trim();
+    return (
+      lower === 'rgb(0, 0, 0)' ||
+      lower === '#000000' ||
+      lower === '#000' ||
+      lower === 'transparent' ||
+      lower === 'rgba(0, 0, 0, 0)'
+    );
+  };
+
+  /**
+   * Kontrollon nëse një background color është default/transparent dhe nuk duhet të ruhet
+   */
+  const isDefaultBackgroundColor = (bgColor: string): boolean => {
+    if (!bgColor) return true;
+    const lower = bgColor.toLowerCase().trim();
+    return (
+      lower === 'rgba(0, 0, 0, 0)' ||
+      lower === 'transparent' ||
+      lower === 'rgb(255, 255, 255)' ||
+      lower === '#ffffff' ||
+      lower === '#fff'
+    );
+  };
+
+  /**
+   * Hapi 2 & 3: Kërkon background color në elementet prind që mbështjellin një element
+   * Shkon lart në hierarki (parent, grandparent, etj.) derisa të gjendet background color ose të arrijë editor element
+   * Kontrollo çdo element prind dhe ruaj background color nëse gjendet
+   * 
+   * Hapi 3: Trajto rastin kur background color është në element prind
+   * Nëse background color gjendet në një element prind që mbështjell të gjithë selection-in, ruaje atë.
+   * Kjo do të thotë që background color është aplikuar në një nivel më të lartë dhe duhet ruajtur.
+   */
+  const findBackgroundColorInParents = (element: HTMLElement, editorEl: HTMLElement): string | null => {
+    // Filloj nga elementi aktual dhe shko lart në hierarki
+    // Kjo do të kontrollojë elementet prind që mbështjellin selection-in
+    let current: HTMLElement | null = element;
+    
+    // Hapi 2.1: Shko lart në hierarki (parent, grandparent, etj.)
+    // Ndaloj kur të arrish editor element ose kur nuk ka më prind
+    while (current && current !== editorEl && editorEl.contains(current)) {
+      // Hapi 2.2 & 3: Kontrollo çdo element prind për background color
+      // Kjo trajton rastin kur background color është në një element prind që mbështjell të gjithë selection-in
+      
+      // Së pari kontrollo inline style (ato kanë prioritet më të lartë)
+      if (current.style.backgroundColor) {
+        const bgColor = current.style.backgroundColor.trim();
+        // Nëse nuk është ngjyrë default, ruaje atë
+        // Hapi 3: Background color është aplikuar në një nivel më të lartë dhe duhet ruajtur
+        if (!isDefaultBackgroundColor(bgColor)) {
+          // Konverto në hex nëse është e nevojshme
+          return bgColor.startsWith('#') ? bgColor : (rgbToHex(bgColor) || bgColor);
+        }
+      }
+      
+      // Nëse nuk u gjet në inline style, kontrollo computed style
+      // Hapi 3: Kjo trajton rastin kur background color është në një element prind që mbështjell të gjithë selection-in
+      const computedStyle = getComputedStyle(current);
+      if (computedStyle.backgroundColor) {
+        const bgColor = computedStyle.backgroundColor;
+        // Nëse nuk është ngjyrë default, ruaje atë
+        // Hapi 3: Background color është aplikuar në një nivel më të lartë dhe duhet ruajtur
+        if (!isDefaultBackgroundColor(bgColor)) {
+          // Konverto në hex nëse është e nevojshme
+          return bgColor.startsWith('#') ? bgColor : (rgbToHex(bgColor) || bgColor);
+        }
+      }
+      
+      // Hapi 2.3: Shko te elementi prind (parent) për kontrollimin e radhës
+      // Kjo do të kontrollojë grandparent, great-grandparent, etj.
+      // Hapi 3: Kjo siguron që kontrollojmë të gjitha elementet prind që mbështjellin selection-in
+      current = current.parentElement;
+    }
+    
+    // Nëse nuk u gjet background color në asnjë element prind, kthe null
+    // Kjo do të thotë që background color nuk është aplikuar në asnjë nivel më të lartë
+    return null;
+  };
+
+  /**
+   * Lexon ngjyrat nga një element (inline styles dhe computed styles)
+   * Hapi 4: Përditëso logjikën për të kontrolluar edhe elementet prind për background color
+   * Sigurohu që kur kontrollon një element, kontrollon edhe elementet prind për background color
+   */
+  const extractColorsFromElement = (element: HTMLElement, editorEl: HTMLElement): { color: string | null; backgroundColor: string | null } => {
+    if (!editorEl.contains(element)) {
+      return { color: null, backgroundColor: null };
+    }
+
+    let color: string | null = null;
+    let backgroundColor: string | null = null;
+
+    // Së pari kontrollo inline styles (ato kanë prioritet më të lartë)
+    if (element.style.color) {
+      const inlineColor = element.style.color.trim();
+      if (!isDefaultColor(inlineColor)) {
+        color = inlineColor.startsWith('#') ? inlineColor : (rgbToHex(inlineColor) || inlineColor);
+      }
+    }
+
+    if (element.style.backgroundColor) {
+      const inlineBgColor = element.style.backgroundColor.trim();
+      if (!isDefaultBackgroundColor(inlineBgColor)) {
+        backgroundColor = inlineBgColor.startsWith('#') ? inlineBgColor : (rgbToHex(inlineBgColor) || inlineBgColor);
+      }
+    }
+
+    // Nëse nuk ka inline styles, lexo nga computed styles
+    if (!color || !backgroundColor) {
+      const computedStyle = getComputedStyle(element);
+      
+      if (!color) {
+        const computedColor = computedStyle.color;
+        if (computedColor && !isDefaultColor(computedColor)) {
+          color = computedColor.startsWith('#') ? computedColor : (rgbToHex(computedColor) || computedColor);
+        }
+      }
+
+      if (!backgroundColor) {
+        const computedBgColor = computedStyle.backgroundColor;
+        if (computedBgColor && !isDefaultBackgroundColor(computedBgColor)) {
+          backgroundColor = computedBgColor.startsWith('#') ? computedBgColor : (rgbToHex(computedBgColor) || computedBgColor);
+        }
+      }
+    }
+
+    // Hapi 4: Nëse nuk u gjet background color në elementin aktual,
+    // kontrollo elementet prind për background color
+    // Kjo siguron që background color që është aplikuar në një nivel më të lartë ruhet
+    if (!backgroundColor) {
+      const parentBgColor = findBackgroundColorInParents(element, editorEl);
+      if (parentBgColor) {
+        backgroundColor = parentBgColor;
+      }
+    }
+
+    return { color, backgroundColor };
+  };
+
+  /**
+   * Nxjerr ngjyrat nga të gjitha elementet në selection (përfshirë elementet e brendshëm)
+   * Hapi 5: Trajto rastet e veçanta:
+   * - Nëse selection-i përfshin elemente me ngjyra të ndryshme, merr ngjyrat nga elementi kryesor ose nga fillimi i selection-it
+   * - Nëse nuk ka ngjyra të aplikuara, kthen null (mos shto ato në <span>)
+   * 
+   * Hapi 1: Përmirëso funksionin për të kontrolluar edhe elementet prind që mbështjellin selection-in
+   */
+  const extractColorsFromSelection = (range: Range, editorEl: HTMLElement): { color: string | null; backgroundColor: string | null } => {
+    let foundColor: string | null = null;
+    let foundBackgroundColor: string | null = null;
+
+    // Hapi 5.1: Merr ngjyrat nga elementi kryesor (fillimi i selection-it)
+    // Kjo është strategjia kryesore: nëse ka ngjyra të ndryshme, përdor ato nga fillimi
+    let startNode: Node | null = range.startContainer;
+    if (startNode.nodeType === Node.TEXT_NODE && startNode.parentElement) {
+      startNode = startNode.parentElement;
+    }
+    
+    // Gjej elementin më të afërt që ka stil inline ose computed style me ngjyrë
+    let currentNode: HTMLElement | null = null;
+    if (startNode.nodeType === Node.ELEMENT_NODE) {
+      currentNode = startNode as HTMLElement;
+    }
+    
+    // Nëse nuk është element, provo të gjesh elementin prind më të afërt
+    if (!currentNode && startNode.parentElement) {
+      currentNode = startNode.parentElement;
+    }
+    
+    // Kontrollo elementin kryesor (fillimi i selection-it) për ngjyra
+    if (currentNode && editorEl.contains(currentNode)) {
+      const colors = extractColorsFromElement(currentNode, editorEl);
+      // Ruaj ngjyrat nga elementi kryesor si default
+      if (colors.color) {
+        foundColor = colors.color;
+      }
+      if (colors.backgroundColor) {
+        foundBackgroundColor = colors.backgroundColor;
+      }
+      
+      // Hapi 2 & 3: Shto logjikë për të kërkuar në elementet prind
+      // Nga elementi ku fillon selection-i, shko lart në hierarki (parent, grandparent, etj.)
+      // Kontrollo çdo element prind derisa të arrish në editor element
+      // Nëse gjen background color në ndonjë element prind, ruaje atë
+      // 
+      // Hapi 3: Trajto rastin kur background color është në element prind
+      // Nëse background color gjendet në një element prind që mbështjell të gjithë selection-in, ruaje atë.
+      // Kjo do të thotë që background color është aplikuar në një nivel më të lartë dhe duhet ruajtur.
+      if (!foundBackgroundColor && currentNode) {
+        const parentBgColor = findBackgroundColorInParents(currentNode, editorEl);
+        if (parentBgColor) {
+          // Hapi 3: Ruaj background color që u gjet në element prind që mbështjell të gjithë selection-in
+          foundBackgroundColor = parentBgColor;
+        }
+      }
+    }
+
+    // Hapi 5.2: Kontrollo elementet e brendshëm në selection
+    // Nëse ka elemente me inline styles eksplicite, ato kanë prioritet më të lartë
+    const fragment = range.cloneContents();
+    const tempDiv = document.createElement('div');
+    tempDiv.appendChild(fragment);
+
+    // Gjej të gjitha elementet që kanë inline styles për color ose background-color
+    const allElements = tempDiv.querySelectorAll('*');
+    const foundColors = new Set<string>();
+    const foundBgColors = new Set<string>();
+
+    for (const elem of Array.from(allElements)) {
+      const htmlElem = elem as HTMLElement;
+      const colors = extractColorsFromElement(htmlElem, editorEl);
+      
+      // Kontrollo nëse ka inline styles eksplicite (ato kanë prioritet)
+      if (htmlElem.style.color && colors.color) {
+        foundColors.add(colors.color);
+        // Nëse ka inline style eksplicit, përdor atë (prioritet më i lartë)
+        foundColor = colors.color;
+      }
+      if (htmlElem.style.backgroundColor && colors.backgroundColor) {
+        foundBgColors.add(colors.backgroundColor);
+        // Nëse ka inline style eksplicit, përdor atë (prioritet më i lartë)
+        foundBackgroundColor = colors.backgroundColor;
+      }
+    }
+
+    // Hapi 2 & 3 (shtesë): Nëse nuk u gjet background color nga elementet e brendshëm,
+    // kontrollo përsëri elementet prind të elementit kryesor
+    // 
+    // Hapi 3: Trajto rastin kur background color është në element prind
+    // Kjo trajton rastin kur background color është në një element prind që mbështjell të gjithë selection-in
+    // Shkon lart në hierarki (parent, grandparent, etj.) dhe kontrollon çdo element prind
+    // Nëse background color gjendet në një element prind që mbështjell të gjithë selection-in, ruaje atë.
+    // Kjo do të thotë që background color është aplikuar në një nivel më të lartë dhe duhet ruajtur.
+    if (!foundBackgroundColor && currentNode) {
+      const parentBgColor = findBackgroundColorInParents(currentNode, editorEl);
+      if (parentBgColor) {
+        // Hapi 3: Ruaj background color që u gjet në element prind që mbështjell të gjithë selection-in
+        // Background color është aplikuar në një nivel më të lartë dhe duhet ruajtur
+        foundBackgroundColor = parentBgColor;
+      }
+    }
+
+    // Hapi 5.3: Trajto rastin kur ka ngjyra të ndryshme
+    // Nëse ka më shumë se një ngjyrë të ndryshme, përdor ngjyrat nga elementi kryesor (fillimi)
+    // Logjika: Nëse ka ngjyra të ndryshme, foundColor dhe foundBackgroundColor tashmë janë vendosur
+    // nga elementi kryesor në fillim, kështu që ato do të mbeten si ngjyra kryesore
+    // Elementet e brendshëm me inline styles mund të mbishkruajnë, por nëse ka konflikte,
+    // ngjyrat nga elementi kryesor (fillimi i selection-it) kanë prioritet
+
+    // Hapi 5.4: Sigurohu që nuk kthejmë ngjyra default
+    // Nëse ngjyrat e gjetura janë default, kthe null (mos shto ato në <span>)
+    if (foundColor && isDefaultColor(foundColor)) {
+      foundColor = null;
+    }
+    if (foundBackgroundColor && isDefaultBackgroundColor(foundBackgroundColor)) {
+      foundBackgroundColor = null;
+    }
+
+    // Kthe ngjyrat (null nëse nuk ka ngjyra të aplikuara)
+    return {
+      color: foundColor,
+      backgroundColor: foundBackgroundColor,
+    };
+  };
+
   /** Madhësi fonti në px → execCommand fontSize (1–7) */
   /**
    * Aplikon madhësinë e fontit në px duke mbështjellë selection-in në <span style="font-size: Npx">,
    * që 8, 9 etj. të jenë vërtet 8px, 9px (execCommand('fontSize') pranon vetëm 1–7 dhe 8/9 bëheshin ~10px).
+   * Lexon dhe ruan ngjyrat ekzistuese (color dhe background-color) nga selection-i aktual dhe elementet e brendshëm.
    */
   const applyFontSize = useCallback(
     (pxValue: string) => {
@@ -234,12 +523,51 @@ const FormattingToolbar = () => {
       if (!sel || sel.rangeCount === 0) return;
       const range = sel.getRangeAt(0);
       if (!el.contains(range.startContainer) || !el.contains(range.endContainer)) return;
+      
+      // Hapi 3: Ruaj ngjyrat në variabla PARA se të aplikosh font size
+      // Nxjerr ngjyrat ekzistuese nga selection-i dhe elementet e brendshëm
+      const { color: existingColor, backgroundColor: existingBackgroundColor } = extractColorsFromSelection(range, el);
+      
+      // Variablat që ruajnë ngjyrat ekzistuese
+      // Nëse ka color ose backgroundColor, ato janë tashmë të ruajtura në këto variabla
+      const preservedTextColor: string | null = existingColor || null;
+      const preservedBackgroundColor: string | null = existingBackgroundColor || null;
+      
+      // Tani aplikojmë font size duke përfshirë ngjyrat e ruajtura
       const fragment = range.cloneContents();
       const wrap = document.createElement('div');
       wrap.appendChild(fragment);
       let inner = wrap.innerHTML || range.toString() || '';
       if (range.collapsed || !inner.trim()) inner = '&#8203;';
-      const wrapped = `<span style="font-size: ${sizePx}px">${inner}</span>`;
+      
+      // Hapi 4: Bashko stilat në <span> të ri
+      // Kur krijon <span> për font size, shto edhe color dhe background-color nëse ekzistojnë
+      // Formato si: <span style="font-size: ${sizePx}px; color: ${existingColor}; background-color: ${existingBgColor}">
+      
+      // Hapi 5: Trajto rastet e veçanta
+      // Nëse nuk ka ngjyra të aplikuara, mos shto ato në <span>
+      // Kontrolli if (preservedTextColor) dhe if (preservedBackgroundColor) siguron që vetëm ngjyrat e aplikuara shtohen
+      
+      // Krijo style string duke filluar me font-size
+      const styleParts: string[] = [`font-size: ${sizePx}px`];
+      
+      // Shto color nëse ka një ngjyrë të ruajtur (vetëm nëse nuk është null/undefined)
+      // Hapi 5: Nëse nuk ka ngjyra të aplikuara, mos shto ato në <span>
+      if (preservedTextColor) {
+        styleParts.push(`color: ${preservedTextColor}`);
+      }
+      
+      // Shto background-color nëse ka një ngjyrë të ruajtur (vetëm nëse nuk është null/undefined)
+      // Hapi 5: Nëse nuk ka ngjyra të aplikuara, mos shto ato në <span>
+      if (preservedBackgroundColor) {
+        styleParts.push(`background-color: ${preservedBackgroundColor}`);
+      }
+      
+      // Bashko të gjitha stilat në një string të vetëm, të ndarë me '; '
+      const styleString = styleParts.join('; ');
+      
+      // Krijo <span> tag-un me të gjitha stilat e bashkuara
+      const wrapped = `<span style="${styleString}">${inner}</span>`;
       document.execCommand('insertHTML', false, wrapped);
       setContent(el.innerHTML);
       updateFormatState();

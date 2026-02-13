@@ -14,12 +14,16 @@ interface DocumentEditorHeaderProps {
 const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
   const navigate = useNavigate();
   const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Hapi 3: Flag përkohës që tregon që save-i është përfunduar për dokumentin e ri
+  // Kjo përdoret për të siguruar që navigimi bëhet pasi state është përditësuar
+  const isSavingNewDocumentRef = useRef<boolean>(false);
   const {
     document,
     setTitle,
     setDocument,
     setSaveStatus,
     saveStatus,
+    clearUnsavedChanges,
   } = useDocumentEditor();
 
   const handleSave = useCallback(async () => {
@@ -33,6 +37,12 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
       const payload = { title: document.title, content: document.content };
       const isNew = document.id == null;
 
+      // Hapi 3: Trajto rastin e dokumentit të ri
+      // Nëse është dokument i ri, vendos flag që tregon që save-i është duke u procesuar
+      if (isNew) {
+        isSavingNewDocumentRef.current = true;
+      }
+
       const doc = isNew
         ? await createDocument(payload)
         : await updateDocument(document.id as string, payload);
@@ -45,11 +55,34 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
         updatedAt: doc.updatedAt,
         version: doc.version,
       };
+      
+      // Hapi 2 & 3: Përmirëso logjikën e handleSave
+      // Pas setDocument(newDoc), sigurohu që hasUnsavedChanges është false para se të bësh navigate
+      // setDocument vendos hasUnsavedChanges = false, por React state updates janë asinkrone
+      // Përdor setTimeout me delay të vogël për të siguruar që state është përditësuar para navigimit
       setDocument(newDoc);
       setSaveStatus('saved');
 
+      // Hapi 3 & 5: Trajto rastin e dokumentit të ri
+      // Nëse është dokument i ri, vendos flag që tregon që save-i është përfunduar
+      // Para se të bësh navigate, sigurohu që hasUnsavedChanges është false
+      // Hapi 5: Nëse është dokument i ri dhe save-i u përfundua me sukses, vendos hasUnsavedChanges = false eksplicitisht
       if (isNew) {
-        navigate(`/editor/${doc.id}`, { replace: true });
+        // Hapi 5: Vendos hasUnsavedChanges = false eksplicitisht para navigimit
+        // Kjo siguron që useBlocker nuk do të shfaqë popup
+        clearUnsavedChanges();
+        
+        // Përdor setTimeout për të siguruar që hasUnsavedChanges është përditësuar në false
+        // para se të bëhet navigate, kështu që useBlocker nuk do të shfaqë popup
+        // Delay i vogël (10ms) për të siguruar që React ka aplikuar state updates
+        setTimeout(() => {
+          // Sigurohu që flag-u tregon që save-i është përfunduar
+          isSavingNewDocumentRef.current = false;
+          navigate(`/editor/${doc.id}`, { replace: true });
+        }, 10);
+      } else {
+        // Nëse nuk është dokument i ri, reset flag-u
+        isSavingNewDocumentRef.current = false;
       }
 
       savedTimeoutRef.current = setTimeout(() => {
@@ -58,8 +91,10 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
       }, SAVED_RESET_MS);
     } catch {
       setSaveStatus('error');
+      // Nëse ka gabim, reset flag-u
+      isSavingNewDocumentRef.current = false;
     }
-  }, [document.id, document.title, document.content, setDocument, setSaveStatus, navigate]);
+  }, [document.id, document.title, document.content, setDocument, setSaveStatus, clearUnsavedChanges, navigate]);
 
   useEffect(() => {
     return () => {

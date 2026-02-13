@@ -30,6 +30,8 @@ export interface DocumentEditorContextValue {
   setContent: (value: string) => void;
   /** Vendos gjendjen e ruajtjes (p.sh. 'saving' / 'saved' / 'error') */
   setSaveStatus: (status: SaveStatus) => void;
+  /** Vendos hasUnsavedChanges = false eksplicitisht (p.sh. pas save të suksesshëm për dokumentin e ri) */
+  clearUnsavedChanges: () => void;
   /** (Opsional) Përditëson metadata – createdAt, updatedAt, version */
   updateMetadata: (meta: Partial<Pick<DocumentModel, 'createdAt' | 'updatedAt' | 'version'>>) => void;
   /** Undo – document.execCommand('undo') me fokus te editorit */
@@ -103,6 +105,12 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     setSaveStatusState(status);
   }, []);
 
+  // Hapi 5: Funksion për të vendosur hasUnsavedChanges = false eksplicitisht
+  // Përdoret pas save të suksesshëm për dokumentin e ri para navigimit
+  const clearUnsavedChanges = useCallback(() => {
+    setHasUnsavedChanges(false);
+  }, []);
+
   const undo = useCallback(() => {
     const el = editorRef.current;
     if (!el) return;
@@ -142,6 +150,7 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     setTitle,
     setContent,
     setSaveStatus,
+    clearUnsavedChanges,
     updateMetadata,
     undo,
     redo,
