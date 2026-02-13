@@ -94,6 +94,8 @@ const EditorArea = () => {
   }, [document.id]); // vetëm document.id – kur ngarkohet doc i ri; document.content lexohet brenda por nuk është në deps
 
   // Debounce: thirr setContent vetëm pas X ms pa ndryshime, për më pak re-render dhe performancë më të mirë.
+  // Çdo ndryshim në editor (shkrim, fshirje, paste) përfundimisht përditëson document.content në context,
+  // që StatusBar ta përdorë për word/character count (Hapi 7).
   const onContentChange = useCallback(
     (_e: React.FormEvent<HTMLDivElement>) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -138,6 +140,7 @@ const EditorArea = () => {
           aria-label="Document editor"
           spellCheck={true}
           onInput={onContentChange}
+          onPaste={onContentChange}
           onBlur={saveEditorSelection}
           onClick={onEditorClick}
         />

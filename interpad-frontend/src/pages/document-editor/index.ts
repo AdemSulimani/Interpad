@@ -16,6 +16,9 @@ export type { ToastType } from './VisualIndicators';
 export { default as DocumentEditorPage } from './DocumentEditorPage';
 export * from './components';
 export type { DocumentModel } from './types/document';
+export { getPlainTextFromContent } from './utils/getPlainTextFromContent';
+export { getTextCounts, type TextCounts } from './utils/getTextCounts';
+export { useDocumentTextCounts } from './hooks/useDocumentTextCounts';
 export { DocumentEditorProvider, useDocumentEditor } from './context/DocumentEditorContext';
 export type { DocumentEditorContextValue, SaveStatus } from './context/DocumentEditorContext';
 
