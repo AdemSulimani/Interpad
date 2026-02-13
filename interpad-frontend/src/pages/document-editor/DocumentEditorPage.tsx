@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import './style/DocumentEditorStyles.css';
 import './style/DocumentEditorPage.css';
 import { DocumentEditorProvider, useDocumentEditor } from './context/DocumentEditorContext';
@@ -9,17 +9,98 @@ import EditorArea from './EditorArea';
 import DocumentSidebar from './DocumentSidebar';
 import StatusBar from './StatusBar';
 import { AutoSaveIndicator, ConnectionStatus } from './VisualIndicators';
+import Modal, { ModalFooter } from './Modal';
+import { getDocument } from '../../services';
+import { getDefaultDocument } from './types/document';
+
+const LEAVE_CONFIRM_TITLE = 'Dilni pa ruajtur?';
+const LEAVE_CONFIRM_MESSAGE = 'A jeni të sigurt që dëshironi të dilni? Nuk i keni ruajtur ndryshimet.';
 
 const DocumentEditorPageInner = () => {
   const { documentId } = useParams<{ documentId?: string }>();
-  const { openNewDocument } = useDocumentEditor();
+  const navigate = useNavigate();
+  const { openNewDocument, hasUnsavedChanges, setDocument } = useDocumentEditor();
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
+  const [documentLoadError, setDocumentLoadError] = useState<string | null>(null);
+  const [isLoadingDocument, setIsLoadingDocument] = useState(false);
 
-  // Kur hapet /editor (pa documentId), vendos në state dokument të ri. Kur ngarkohet /editor/:id, state përditësohet nga API (hapet më vonë).
-  useEffect(() => {
-    if (documentId === undefined) {
-      openNewDocument();
+  const blocker = useBlocker(hasUnsavedChanges);
+
+  const showLeaveModal = showBackConfirm || blocker.state === 'blocked';
+
+  const handleLeaveConfirm = useCallback(() => {
+    if (blocker.state === 'blocked') {
+      blocker.proceed();
+    } else {
+      setShowBackConfirm(false);
+      navigate('/docs');
     }
-  }, [documentId, openNewDocument]);
+  }, [blocker, navigate]);
+
+  const handleLeaveCancel = useCallback(() => {
+    if (blocker.state === 'blocked') {
+      blocker.reset();
+    } else {
+      setShowBackConfirm(false);
+    }
+  }, [blocker]);
+
+  const onBackToDocs = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setShowBackConfirm(true);
+    } else {
+      navigate('/docs');
+    }
+  }, [hasUnsavedChanges, navigate]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Kur hapet /editor (pa id ose "new") → dokument i ri. Kur /editor/:documentId → load nga API.
+  useEffect(() => {
+    if (documentId === undefined || documentId === 'new') {
+      setDocumentLoadError(null);
+      setIsLoadingDocument(false);
+      openNewDocument();
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingDocument(true);
+    setDocumentLoadError(null);
+
+    getDocument(documentId)
+      .then((doc) => {
+        if (cancelled) return;
+        setDocument({
+          id: doc.id,
+          title: doc.title,
+          content: doc.content ?? '',
+          createdAt: doc.createdAt,
+          updatedAt: doc.updatedAt,
+          version: doc.version,
+        });
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setDocumentLoadError(e instanceof Error ? e.message : 'Failed to load document');
+        setDocument(getDefaultDocument());
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingDocument(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [documentId, openNewDocument, setDocument]);
 
   // Sidebar closed by default on mobile, open on desktop
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
@@ -70,8 +151,28 @@ const DocumentEditorPageInner = () => {
 
   return (
     <div className={`document-editor-page ${isFullscreen ? 'fullscreen-mode' : ''}`}>
+      <Modal
+        isOpen={showLeaveModal}
+        onClose={handleLeaveCancel}
+        title={LEAVE_CONFIRM_TITLE}
+        showCloseButton={true}
+        closeOnOverlayClick={false}
+        size="small"
+        footer={
+          <ModalFooter
+            cancelText="Anulo"
+            confirmText="Dil"
+            confirmVariant="danger"
+            onCancel={handleLeaveCancel}
+            onConfirm={handleLeaveConfirm}
+          />
+        }
+      >
+        <p className="document-editor-leave-confirm-message">{LEAVE_CONFIRM_MESSAGE}</p>
+      </Modal>
+
       {/* Header */}
-      <DocumentEditorHeader />
+      <DocumentEditorHeader onBackToDocs={onBackToDocs} />
 
       {/* Main Layout Container */}
       <div className="document-editor-main">
@@ -112,12 +213,24 @@ const DocumentEditorPageInner = () => {
 
         {/* Main Content Area */}
         <main className="document-editor-content">
+          {documentLoadError && (
+            <div className="document-editor-load-error" role="alert">
+              {documentLoadError}
+            </div>
+          )}
           {/* Formatting Toolbar */}
           <FormattingToolbar />
 
           {/* Editor Area */}
           <div className="editor-area-wrapper">
-            <EditorArea />
+            {isLoadingDocument ? (
+              <div className="document-editor-doc-loading">
+                <div className="document-editor-doc-loading-spinner" aria-hidden />
+                <p className="document-editor-doc-loading-text">Duke ngarkuar dokumentin…</p>
+              </div>
+            ) : (
+              <EditorArea />
+            )}
           </div>
 
           {/* Status Bar */}

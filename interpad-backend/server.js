@@ -48,6 +48,10 @@ app.use('/api/auth', authRoutes);
 const uploadRoutes = require('./routes/uploadRoutes');
 app.use('/api/upload', uploadRoutes);
 
+// Document routes (krijim, përditësim, load, lista recent)
+const documentRoutes = require('./routes/documentRoutes');
+app.use('/api/documents', documentRoutes);
+
 // Shërbej skedarët e ngarkuar statikisht (URL për imazhet e ruajtura)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

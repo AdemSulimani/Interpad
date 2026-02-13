@@ -201,3 +201,138 @@ export async function linkGoogleAccount(payload: {
   return data;
 }
 
+// ——— Document API (kërkon JWT) ———
+
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
+export interface DocumentApiDoc {
+  id: string;
+  title: string;
+  content: string;
+  createdAt?: string;
+  updatedAt?: string;
+  version?: number;
+}
+
+export interface DocumentCreateResponse {
+  success: boolean;
+  document: DocumentApiDoc;
+  message?: string;
+}
+
+export interface DocumentUpdateResponse {
+  success: boolean;
+  document: DocumentApiDoc;
+  message?: string;
+}
+
+/** Krijon dokument të ri. Kërkon JWT. */
+export async function createDocument(payload: {
+  title: string;
+  content: string;
+}): Promise<DocumentApiDoc> {
+  const res = await fetch(`${API_BASE_URL}/api/documents`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await res.json()) as DocumentCreateResponse;
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to create document');
+  }
+
+  if (!data.document) {
+    throw new Error('Server did not return document');
+  }
+
+  return data.document;
+}
+
+export interface DocumentGetOneResponse {
+  success: boolean;
+  document: DocumentApiDoc;
+  message?: string;
+}
+
+/** Merr një dokument me id. Kërkon JWT. */
+export async function getDocument(documentId: string): Promise<DocumentApiDoc> {
+  const res = await fetch(`${API_BASE_URL}/api/documents/${documentId}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = (await res.json()) as DocumentGetOneResponse;
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to load document');
+  }
+
+  if (!data.document) {
+    throw new Error('Server did not return document');
+  }
+
+  return data.document;
+}
+
+/** Përditëson dokument ekzistues. Kërkon JWT. */
+export async function updateDocument(
+  documentId: string,
+  payload: { title: string; content: string }
+): Promise<DocumentApiDoc> {
+  const res = await fetch(`${API_BASE_URL}/api/documents/${documentId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await res.json()) as DocumentUpdateResponse;
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to update document');
+  }
+
+  if (!data.document) {
+    throw new Error('Server did not return document');
+  }
+
+  return data.document;
+}
+
+export interface RecentDocumentItem {
+  id: string;
+  title: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DocumentRecentResponse {
+  success: boolean;
+  documents: RecentDocumentItem[];
+  message?: string;
+}
+
+/** Merr listën e dokumenteve të fundit për user-in e loguar. Kërkon JWT. */
+export async function getRecentDocuments(): Promise<RecentDocumentItem[]> {
+  const res = await fetch(`${API_BASE_URL}/api/documents`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = (await res.json()) as DocumentRecentResponse;
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to get recent documents');
+  }
+
+  return data.documents ?? [];
+}
+
