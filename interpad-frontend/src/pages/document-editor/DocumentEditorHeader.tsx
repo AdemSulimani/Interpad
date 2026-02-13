@@ -1,9 +1,73 @@
 import './style/DocumentEditorHeader.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useRef, useEffect } from 'react';
 import { useDocumentEditor } from './context/DocumentEditorContext';
+import { createDocument, updateDocument } from '../../services';
+import type { DocumentModel } from './types/document';
 
-const DocumentEditorHeader = () => {
-  const { document, setTitle } = useDocumentEditor();
+const SAVED_RESET_MS = 2000;
+
+interface DocumentEditorHeaderProps {
+  onBackToDocs?: () => void;
+}
+
+const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
+  const navigate = useNavigate();
+  const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const {
+    document,
+    setTitle,
+    setDocument,
+    setSaveStatus,
+    saveStatus,
+  } = useDocumentEditor();
+
+  const handleSave = useCallback(async () => {
+    setSaveStatus('saving');
+    if (savedTimeoutRef.current) {
+      clearTimeout(savedTimeoutRef.current);
+      savedTimeoutRef.current = null;
+    }
+
+    try {
+      const payload = { title: document.title, content: document.content };
+      const isNew = document.id == null;
+
+      const doc = isNew
+        ? await createDocument(payload)
+        : await updateDocument(document.id as string, payload);
+
+      const newDoc: DocumentModel = {
+        id: doc.id,
+        title: doc.title,
+        content: doc.content,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+        version: doc.version,
+      };
+      setDocument(newDoc);
+      setSaveStatus('saved');
+
+      if (isNew) {
+        navigate(`/editor/${doc.id}`, { replace: true });
+      }
+
+      savedTimeoutRef.current = setTimeout(() => {
+        setSaveStatus('idle');
+        savedTimeoutRef.current = null;
+      }, SAVED_RESET_MS);
+    } catch {
+      setSaveStatus('error');
+    }
+  }, [document.id, document.title, document.content, setDocument, setSaveStatus, navigate]);
+
+  useEffect(() => {
+    return () => {
+      if (savedTimeoutRef.current) {
+        clearTimeout(savedTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <header className="document-editor-header">
@@ -30,15 +94,41 @@ const DocumentEditorHeader = () => {
         {/* Right: Action Buttons & User Profile */}
         <div className="document-editor-header-right">
           <div className="document-editor-actions">
-            <Link to="/docs" className="document-editor-btn document-editor-btn-back" title="Back to docs">
+            <button
+              type="button"
+              className="document-editor-btn document-editor-btn-back"
+              title="Back to docs"
+              onClick={onBackToDocs ?? (() => navigate('/docs'))}
+              aria-label="Back to docs"
+            >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
               </svg>
-            </Link>
-            <button className="document-editor-btn document-editor-btn-save" title="Save">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
+            </button>
+            <button
+              type="button"
+              className={`document-editor-btn document-editor-btn-save ${saveStatus === 'saved' ? 'document-editor-btn-save-success' : ''}`}
+              title={saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
+              onClick={handleSave}
+              disabled={saveStatus === 'saving'}
+              aria-label={saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
+            >
+              {saveStatus === 'saving' && (
+                <span className="document-editor-save-label">Saving…</span>
+              )}
+              {saveStatus === 'saved' && (
+                <span className="document-editor-save-saved">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Saved
+                </span>
+              )}
+              {saveStatus !== 'saving' && saveStatus !== 'saved' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              )}
             </button>
             <button className="document-editor-btn document-editor-btn-share" title="Share">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

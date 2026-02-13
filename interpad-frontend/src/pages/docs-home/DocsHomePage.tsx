@@ -1,12 +1,59 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './style/DocsHomePage.css';
+import { getRecentDocuments } from '../../services';
+import type { RecentDocumentItem } from '../../services';
+
+function formatDocumentDate(isoDate?: string): string {
+  if (!isoDate) return '';
+  const d = new Date(isoDate);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  return d.toLocaleDateString();
+}
 
 const DocsHomePage = () => {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [recentDocs, setRecentDocs] = useState<RecentDocumentItem[]>([]);
+  const [recentDocsLoading, setRecentDocsLoading] = useState(true);
+  const [recentDocsError, setRecentDocsError] = useState<string | null>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const profileLeaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
+
+  const loadRecentDocuments = useCallback(async () => {
+    setRecentDocsLoading(true);
+    setRecentDocsError(null);
+    try {
+      const list = await getRecentDocuments();
+      setRecentDocs(list);
+    } catch (e) {
+      setRecentDocsError(e instanceof Error ? e.message : 'Failed to load documents');
+      setRecentDocs([]);
+    } finally {
+      setRecentDocsLoading(false);
+    }
+  }, []);
+
+  // Përditëso listën kur hapet faqja dhe kur përdoruesi kthehet te kjo tab (Save ↔ Recent).
+  useEffect(() => {
+    loadRecentDocuments();
+  }, [loadRecentDocuments]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') loadRecentDocuments();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [loadRecentDocuments]);
 
   const userJson = localStorage.getItem('user');
   const user = userJson ? (JSON.parse(userJson) as { name?: string; email?: string }) : null;
@@ -166,18 +213,54 @@ const DocsHomePage = () => {
           </div>
         </div>
         <div className="docs-home-recent-content">
-          <div className="docs-home-recent-empty-state">
-            <span className="docs-home-recent-empty-icon" aria-hidden>
-              <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
-                <path d="M14 2v6h6" />
-                <path d="M12 11v6" />
-                <path d="M9 14h6" />
-              </svg>
-            </span>
-            <p className="docs-home-recent-empty-title">No documents yet</p>
-            <p className="docs-home-recent-empty-sub">Nuk keni dokumente ende. Klikoni "Blank document" për të krijuar një të parën.</p>
-          </div>
+          {recentDocsLoading ? (
+            <div className="docs-home-recent-empty-state">
+              <p className="docs-home-recent-empty-sub">Duke ngarkuar…</p>
+            </div>
+          ) : recentDocsError ? (
+            <div className="docs-home-recent-empty-state">
+              <p className="docs-home-recent-empty-title">Gabim</p>
+              <p className="docs-home-recent-empty-sub">{recentDocsError}</p>
+            </div>
+          ) : recentDocs.length === 0 ? (
+            <div className="docs-home-recent-empty-state">
+              <span className="docs-home-recent-empty-icon" aria-hidden>
+                <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                  <path d="M14 2v6h6" />
+                  <path d="M12 11v6" />
+                  <path d="M9 14h6" />
+                </svg>
+              </span>
+              <p className="docs-home-recent-empty-title">No documents yet</p>
+              <p className="docs-home-recent-empty-sub">Nuk keni dokumente ende. Klikoni "Blank document" për të krijuar një të parën.</p>
+            </div>
+          ) : (
+            <ul className="docs-home-recent-list" aria-label="Recent documents">
+              {recentDocs.map((doc) => (
+                <li key={doc.id}>
+                  <button
+                    type="button"
+                    className="docs-home-recent-doc-card"
+                    onClick={() => navigate(`/editor/${doc.id}`)}
+                  >
+                    <span className="docs-home-recent-doc-icon" aria-hidden>
+                      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                        <path d="M14 2v6h6" />
+                      </svg>
+                    </span>
+                    <div className="docs-home-recent-doc-info">
+                      <span className="docs-home-recent-doc-title">{doc.title || 'Untitled Document'}</span>
+                      {doc.updatedAt && (
+                        <span className="docs-home-recent-doc-date">{formatDocumentDate(doc.updatedAt)}</span>
+                      )}
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
       </main>

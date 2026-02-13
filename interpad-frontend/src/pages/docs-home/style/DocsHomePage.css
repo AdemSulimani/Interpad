@@ -665,3 +665,67 @@
   max-width: 320px;
   line-height: 1.5;
 }
+
+/* Recent documents list */
+.docs-home-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.docs-home-recent-list li {
+  margin: 0;
+}
+
+.docs-home-recent-doc-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--docs-radius-sm);
+  background: transparent;
+  color: var(--docs-text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.docs-home-recent-doc-card:hover {
+  background: var(--docs-surface-hover);
+}
+
+.docs-home-recent-doc-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5f6368;
+}
+
+.docs-home-recent-doc-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.docs-home-recent-doc-title {
+  font-weight: 500;
+  color: var(--docs-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.docs-home-recent-doc-date {
+  font-size: 0.75rem;
+  color: var(--docs-text-secondary);
+}

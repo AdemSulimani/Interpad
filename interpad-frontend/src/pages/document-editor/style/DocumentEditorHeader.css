@@ -163,6 +163,35 @@
   background-color: #e8f5f0;
 }
 
+.document-editor-btn-save:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+.document-editor-save-label {
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+.document-editor-save-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #0d9668;
+}
+
+.document-editor-btn-save.document-editor-btn-save-success {
+  color: #0d9668;
+  background-color: #e8f5f0;
+}
+
+.document-editor-btn-save.document-editor-btn-save-success .document-editor-save-saved svg {
+  flex-shrink: 0;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .document-editor-header-container {
