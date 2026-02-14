@@ -1,14 +1,14 @@
 import './style/StatusBar.css';
 import { useDocumentEditor } from './context/DocumentEditorContext';
 import { useDocumentTextCounts } from './hooks/useDocumentTextCounts';
+import { getDocumentContent } from './types/document';
 
 const StatusBar = () => {
-  const { document } = useDocumentEditor();
-  const { wordCount, characterCount, characterCountNoSpaces } = useDocumentTextCounts(document.content);
+  const { document, focusedPageIndex } = useDocumentEditor();
+  const { wordCount, characterCount, characterCountNoSpaces } = useDocumentTextCounts(getDocumentContent(document));
 
-  // Placeholder për faqe, zoom, gjuhë (ende pa implementuar)
-  const pageNumber = 1;
-  const totalPages = 3;
+  const totalPages = document.pages.length;
+  const pageNumber = totalPages > 0 ? Math.min(focusedPageIndex + 1, totalPages) : 1;
   const zoom = 100;
   const language = 'en-US';
 
@@ -41,7 +41,7 @@ const StatusBar = () => {
         </div>
 
         {/* Center: Page Number (if applicable) */}
-        {totalPages > 1 && (
+        {totalPages > 0 && (
           <div className="status-bar-center">
             <div className="status-item">
               <span className="status-label">Page:</span>

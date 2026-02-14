@@ -1,5 +1,5 @@
 /**
- * Nxjerrt tekstin e pastër (pa tag-e HTML) nga document.content.
+ * Nxjerrt tekstin e pastër (pa tag-e HTML) nga HTML (p.sh. document page content).
  * Përdoret si burim i vetëm për word count, character count dhe character count without spaces.
  * Rastet e skajshme: content bosh, null/undefined ose gabim DOM → kthen '' (pa gabime).
  */

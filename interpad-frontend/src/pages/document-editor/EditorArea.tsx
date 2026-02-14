@@ -1,9 +1,17 @@
 import { useRef, useEffect, useCallback } from 'react';
 import './style/EditorArea.css';
 import { useDocumentEditor } from './context/DocumentEditorContext';
+import { hasPageOverflow } from './utils/measurePageOverflow';
+import { splitContentIntoPages } from './utils/splitPageContent';
 
 const DEFAULT_PLACEHOLDER_HTML = '<p>Start typing your document here...</p>';
+const EMPTY_PAGE_HTML = '<p><br></p>';
 const CONTENT_DEBOUNCE_MS = 400;
+
+/** Përmbajtja për një faqe bosh: vetëm për faqen e parë kur është e vetmja shfaqet placeholder-i. */
+function getEmptyPageContent(pageIndex: number, totalPages: number): string {
+  return pageIndex === 0 && totalPages === 1 ? DEFAULT_PLACEHOLDER_HTML : EMPTY_PAGE_HTML;
+}
 
 /** Kthen offset-in e karaktereve nga fillimi i container deri te pika (node, offset) */
 function getCharacterOffset(container: Node, node: Node, offset: number): number {
@@ -26,7 +34,6 @@ function setCharacterOffset(container: Node, targetOffset: number): { node: Node
     count += len;
     node = walker.nextNode();
   }
-  // Kursor në fund: vendos në nyjen e fundit të tekstit ose në container
   const last = getLastTextNodeOrContainer(container);
   return last ? { node: last.node, offset: last.offset } : null;
 }
@@ -73,51 +80,156 @@ function restoreSelection(editable: HTMLElement, saved: { start: number; end: nu
   editable.focus();
 }
 
+/** Vendos kursorin në fillim të përmbajtjes së elementit (p.sh. pas split për faqen e re). */
+function setCursorToStart(editable: HTMLElement): void {
+  const pos = setCharacterOffset(editable, 0);
+  if (!pos) return;
+  const range = document.createRange();
+  range.setStart(pos.node, pos.offset);
+  range.setEnd(pos.node, pos.offset);
+  const sel = document.getSelection();
+  if (sel) {
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  editable.focus();
+}
+
 const EditorArea = () => {
-  const { document, setContent, editorRef, saveEditorSelection } = useDocumentEditor();
+  const {
+    document,
+    setContent,
+    setPages,
+    setPageContent,
+    editorRef,
+    saveEditorSelection,
+    setFocusedPageIndex,
+    focusedPageIndex,
+  } = useDocumentEditor();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const pendingChangeRef = useRef<{ pageIndex: number; html: string } | null>(null);
+  const focusPageAfterSplitRef = useRef<number | null>(null);
+  const documentPagesRef = useRef<string[]>(document.pages);
+  documentPagesRef.current = document.pages;
 
-  // Sync “nga jashtë” vetëm kur ndryshon dokumenti (id), jo kur ndryshon document.content nga onInput.
-  // Nëse varem nga document.content, pas çdo debounce setContent() do të bënte innerHTML = content
-  // dhe do të shkatërronte undo/redo stack-in e shfletuesit.
+  // Sync nga state te DOM vetëm kur ndryshon dokumenti (id) – ngarkim doc i ri.
+  // Faqe bosh: vetëm faqja 1 (e vetme) merr placeholder-in "Start typing..."; të tjerat marrin <p><br></p>.
   useEffect(() => {
-    const el = editorRef?.current ?? null;
-    if (!el) return;
-    const contentFromState = document.content?.trim() || DEFAULT_PLACEHOLDER_HTML;
-    if (contentFromState === el.innerHTML) return;
-
-    const saved = saveSelection(el);
-    el.innerHTML = contentFromState;
-    if (saved !== null) {
-      restoreSelection(el, saved);
+    const pages = document.pages;
+    for (let j = 0; j < pages.length; j++) {
+      const el = pageRefs.current[j];
+      if (!el) continue;
+      const raw = pages[j]?.trim() || '';
+      const contentFromState = raw || getEmptyPageContent(j, pages.length);
+      if (contentFromState === el.innerHTML) continue;
+      const saved = saveSelection(el);
+      el.innerHTML = contentFromState;
+      if (saved !== null) restoreSelection(el, saved);
     }
-  }, [document.id]); // vetëm document.id – kur ngarkohet doc i ri; document.content lexohet brenda por nuk është në deps
+  }, [document.id]);
 
-  // Debounce: thirr setContent vetëm pas X ms pa ndryshime, për më pak re-render dhe performancë më të mirë.
-  // Çdo ndryshim në editor (shkrim, fshirje, paste) përfundimisht përditëson document.content në context,
-  // që StatusBar ta përdorë për word/character count (Hapi 7).
-  const onContentChange = useCallback(
-    (_e: React.FormEvent<HTMLDivElement>) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        debounceRef.current = null;
-        const el = editorRef?.current;
-        if (!el) return;
-        const html = el.innerHTML;
-        setContent(html); // përditëson state dhe hasUnsavedChanges = true
-      }, CONTENT_DEBOUNCE_MS);
+  // Pas split, fokuson faqen e re (pageIndex + 1) dhe vendos kursorin në fillim (Hapi 8 opsional).
+  useEffect(() => {
+    const focusIndex = focusPageAfterSplitRef.current;
+    if (focusIndex == null) return;
+    focusPageAfterSplitRef.current = null;
+    const nextEl = pageRefs.current[focusIndex];
+    if (nextEl) {
+      nextEl.focus();
+      setCursorToStart(nextEl);
+      setFocusedPageIndex(focusIndex);
+    }
+  }, [document.pages.length, setFocusedPageIndex]);
+
+  // Mbaj editorRef në sync me faqen e fokusuar (kur ndryshon focusedPageIndex).
+  // Invariant: editorRef.current duhet të tregojë gjithmonë elementin e faqes së fokusuar,
+  // që toolbar-i dhe syncEditorContentToState të punojnë mbi faqen e duhur (jo gjithmonë faqen 1).
+  useEffect(() => {
+    const el = pageRefs.current[focusedPageIndex];
+    if (el && editorRef) editorRef.current = el;
+  }, [focusedPageIndex, editorRef]);
+
+  // Verifikim vetëm në dev: editorRef duhet të përputhet me faqen e fokusuar kur ka shumë faqe.
+  useEffect(() => {
+    if (import.meta.env.DEV && document.pages.length > 1) {
+      const expected = pageRefs.current[focusedPageIndex];
+      if (expected && editorRef?.current !== expected) {
+        console.warn(
+          '[EditorArea] editorRef nuk përputhet me faqen e fokusuar: focusedPageIndex=',
+          focusedPageIndex,
+          '– toolbar-i mund të shkruajë në faqen e gabuar.'
+        );
+      }
+    }
+  }, [focusedPageIndex, document.pages.length, editorRef]);
+
+  const flushPendingChange = useCallback(() => {
+    const pending = pendingChangeRef.current;
+    if (pending == null) return;
+    pendingChangeRef.current = null;
+    const { pageIndex } = pending;
+    const el = pageRefs.current[pageIndex];
+    if (!el) return;
+    // Përdor përmbajtjen aktuale të DOM (toolbar mund ta ketë ndryshuar pas onInput); mos mbishkruaj me pending të vjetër.
+    const html = el.innerHTML;
+    const width = el.offsetWidth;
+    const pages = documentPagesRef.current;
+
+    if (width <= 0) {
+      if (pageIndex === 0) setContent(html);
+      else setPageContent(pageIndex, html);
+      return;
+    }
+
+    if (hasPageOverflow(html, width)) {
+      const newPages = splitContentIntoPages(html, width);
+      const nextPages =
+        pageIndex === 0
+          ? [...newPages, ...pages.slice(1)]
+          : [
+              ...pages.slice(0, pageIndex),
+              ...newPages,
+              ...pages.slice(pageIndex + 1),
+            ];
+      if (newPages.length > 1) focusPageAfterSplitRef.current = pageIndex + 1;
+      setPages(nextPages);
+      el.innerHTML = newPages[0]?.trim() || EMPTY_PAGE_HTML;
+    } else {
+      if (pageIndex === 0) setContent(html);
+      else setPageContent(pageIndex, html);
+    }
+  }, [setContent, setPageContent, setPages]);
+
+  const scheduleFlush = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      flushPendingChange();
+    }, CONTENT_DEBOUNCE_MS);
+  }, [flushPendingChange]);
+
+  const onPageContentChange = useCallback(
+    (pageIndex: number) => (e: React.FormEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      pendingChangeRef.current = { pageIndex, html: el.innerHTML };
+      scheduleFlush();
     },
-    [setContent, editorRef]
+    [scheduleFlush]
   );
 
-  // Pastro timeout në unmount
+  const onPageFocus = useCallback((pageIndex: number) => () => {
+    const el = pageRefs.current[pageIndex];
+    if (el && editorRef) editorRef.current = el;
+    setFocusedPageIndex(pageIndex);
+  }, [editorRef, setFocusedPageIndex]);
+
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
 
-  /** Kur klikohet teksti që është link, hap URL-në në tab të ri (në contentEditable klikimi zakonisht vetëm e zgjedh linkun). */
   const onEditorClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     const anchor = target.closest?.('a');
@@ -128,26 +240,40 @@ const EditorArea = () => {
     }
   }, []);
 
+  const pages = document.pages.length ? document.pages : [DEFAULT_PLACEHOLDER_HTML];
+
   return (
     <div className="editor-area-wrapper">
       <div className="editor-area-container">
-        <div
-          ref={editorRef}
-          className="editor-area"
-          contentEditable={true}
-          suppressContentEditableWarning={true}
-          role="textbox"
-          aria-label="Document editor"
-          spellCheck={true}
-          onInput={onContentChange}
-          onPaste={onContentChange}
-          onBlur={saveEditorSelection}
-          onClick={onEditorClick}
-        />
+        {pages.map((_, pageIndex) => (
+          <div key={pageIndex} className="editor-page">
+            <div
+              ref={(node) => {
+                pageRefs.current[pageIndex] = node;
+                // Vetëm faqja e fokusuar e vendos editorRef (jo gjithmonë faqja 0), që toolbar të aplikohet në faqen e duhur.
+                if (node && pageIndex === focusedPageIndex && editorRef) editorRef.current = node;
+                if (node && pageIndex > 0) {
+                  const content = document.pages[pageIndex];
+                  if (content != null && content !== node.innerHTML) node.innerHTML = content;
+                }
+              }}
+              className="editor-area"
+              contentEditable={true}
+              suppressContentEditableWarning={true}
+              role="textbox"
+              aria-label={`Page ${pageIndex + 1}`}
+              spellCheck={true}
+              onInput={onPageContentChange(pageIndex)}
+              onPaste={onPageContentChange(pageIndex)}
+              onFocus={onPageFocus(pageIndex)}
+              onBlur={saveEditorSelection}
+              onClick={onEditorClick}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
 export default EditorArea;
-

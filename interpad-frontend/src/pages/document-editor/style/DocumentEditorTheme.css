@@ -181,6 +181,12 @@
   --transition-slower: 0.5s ease;
 
   /* ============================================
+     Document Editor – Page dimensions (pagination)
+     Lartësia e një faqeje në editor; përdoret për overflow dhe faqe të reja.
+     ============================================ */
+  --document-page-height: 1100px;
+
+  /* ============================================
      Z-Index Scale
      ============================================ */
   

@@ -12,7 +12,7 @@ import { getDefaultDocument } from '../types/document';
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export interface DocumentEditorContextValue {
-  /** Dokumenti aktual (id, title, content, metadata) */
+  /** Dokumenti aktual (id, title, pages, metadata) */
   document: DocumentModel;
   /** A ka ndryshime të paruajtura */
   hasUnsavedChanges: boolean;
@@ -26,8 +26,12 @@ export interface DocumentEditorContextValue {
   openNewDocument: () => void;
   /** Përditëson titullin; vendos hasUnsavedChanges = true */
   setTitle: (value: string) => void;
-  /** Përditëson përmbajtjen (HTML); vendos hasUnsavedChanges = true */
+  /** Përditëson përmbajtjen e faqes së parë (HTML); vendos hasUnsavedChanges = true. (Hapi 2: për tani një faqe.) */
   setContent: (value: string) => void;
+  /** Vendos listën e plotë të faqesh (p.sh. pas split overflow – Hapi 5); vendos hasUnsavedChanges = true. */
+  setPages: (pages: string[]) => void;
+  /** Përditëson përmbajtjen e një faqeje me indeks (Hapi 7 – UI me shumë faqe). */
+  setPageContent: (pageIndex: number, value: string) => void;
   /** Vendos gjendjen e ruajtjes (p.sh. 'saving' / 'saved' / 'error') */
   setSaveStatus: (status: SaveStatus) => void;
   /** Vendos hasUnsavedChanges = false eksplicitisht (p.sh. pas save të suksesshëm për dokumentin e ri) */
@@ -42,6 +46,10 @@ export interface DocumentEditorContextValue {
   saveEditorSelection: () => void;
   /** Rikthe selection-in e ruajtur dhe fokuson editorin; kthen true nëse u rikthye */
   restoreEditorSelection: () => boolean;
+  /** Indeksi i faqes së fokusuar (0-based); për StatusBar "Page X of Y". */
+  focusedPageIndex: number;
+  /** Vendos faqen e fokusuar (thirret nga EditorArea onFocus). */
+  setFocusedPageIndex: (index: number) => void;
 }
 
 const DocumentEditorContext = createContext<DocumentEditorContextValue | null>(null);
@@ -50,6 +58,7 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
   const [document, setDocumentState] = useState<DocumentModel>(getDefaultDocument);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveStatus, setSaveStatusState] = useState<SaveStatus>('idle');
+  const [focusedPageIndex, setFocusedPageIndex] = useState(0);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const savedRangeRef = useRef<Range | null>(null);
 
@@ -85,6 +94,7 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
   const setDocument = useCallback((doc: DocumentModel) => {
     setDocumentState(doc);
     setHasUnsavedChanges(false);
+    setFocusedPageIndex(0);
   }, []);
 
   const openNewDocument = useCallback(() => {
@@ -97,7 +107,20 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setContent = useCallback((value: string) => {
-    setDocumentState((prev) => ({ ...prev, content: value }));
+    setDocumentState((prev) => ({ ...prev, pages: [value] }));
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const setPages = useCallback((pages: string[]) => {
+    setDocumentState((prev) => ({ ...prev, pages }));
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const setPageContent = useCallback((pageIndex: number, value: string) => {
+    setDocumentState((prev) => ({
+      ...prev,
+      pages: prev.pages.map((p, i) => (i === pageIndex ? value : p)),
+    }));
     setHasUnsavedChanges(true);
   }, []);
 
@@ -118,9 +141,15 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     setTimeout(() => {
       window.document.execCommand('undo', false, undefined);
       const editor = editorRef.current;
-      if (editor) setContent(editor.innerHTML);
+      if (editor) {
+        if (document.pages.length > 1) {
+          setPageContent(focusedPageIndex, editor.innerHTML);
+        } else {
+          setContent(editor.innerHTML);
+        }
+      }
     }, 0);
-  }, [setContent]);
+  }, [document.pages.length, focusedPageIndex, setContent, setPageContent]);
 
   const redo = useCallback(() => {
     const el = editorRef.current;
@@ -129,9 +158,15 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     setTimeout(() => {
       window.document.execCommand('redo', false, undefined);
       const editor = editorRef.current;
-      if (editor) setContent(editor.innerHTML);
+      if (editor) {
+        if (document.pages.length > 1) {
+          setPageContent(focusedPageIndex, editor.innerHTML);
+        } else {
+          setContent(editor.innerHTML);
+        }
+      }
     }, 0);
-  }, [setContent]);
+  }, [document.pages.length, focusedPageIndex, setContent, setPageContent]);
 
   const updateMetadata = useCallback(
     (meta: Partial<Pick<DocumentModel, 'createdAt' | 'updatedAt' | 'version'>>) => {
@@ -149,6 +184,8 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     openNewDocument,
     setTitle,
     setContent,
+    setPages,
+    setPageContent,
     setSaveStatus,
     clearUnsavedChanges,
     updateMetadata,
@@ -156,6 +193,8 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     redo,
     saveEditorSelection,
     restoreEditorSelection,
+    focusedPageIndex,
+    setFocusedPageIndex,
   };
 
   return (
