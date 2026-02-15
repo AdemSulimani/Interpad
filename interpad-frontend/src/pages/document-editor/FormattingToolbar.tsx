@@ -77,7 +77,16 @@ const FormattingToolbar = () => {
   const [uploadedImageDataUrl, setUploadedImageDataUrl] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
-  const { undo, redo, editorRef, setContent, restoreEditorSelection } = useDocumentEditor();
+  const {
+    undo,
+    redo,
+    editorRef,
+    setContent,
+    setPageContent,
+    document: editorDocument,
+    focusedPageIndex,
+    restoreEditorSelection,
+  } = useDocumentEditor();
 
   /** Mesazh brenda editorit (jo alert); fshihet vetë pas disa sekondave. */
   const showEditorMessage = useCallback((message: string) => {
@@ -135,6 +144,17 @@ const FormattingToolbar = () => {
     return () => document.removeEventListener('selectionchange', updateFormatState);
   }, [updateFormatState]);
 
+  /** Sinkronizon përmbajtjen e faqes së fokusuar në state: setPageContent kur ka shumë faqe, setContent përndryshe. */
+  const syncEditorContentToState = useCallback(() => {
+    const el = editorRef?.current;
+    if (!el) return;
+    if (editorDocument.pages.length > 1) {
+      setPageContent(focusedPageIndex, el.innerHTML);
+    } else {
+      setContent(el.innerHTML);
+    }
+  }, [editorRef, editorDocument.pages.length, focusedPageIndex, setContent, setPageContent]);
+
   /**
    * Ekzekuton një komandë formatimi mbi selection-in aktual të editorit.
    * Fokuson editorin, thërret execCommand, pastaj sinkronizon përmbajtjen në state
@@ -146,10 +166,10 @@ const FormattingToolbar = () => {
       if (!el) return;
       el.focus();
       document.execCommand(command, false, value ?? undefined);
-      setContent(el.innerHTML);
+      syncEditorContentToState();
       updateFormatState();
     },
-    [editorRef, setContent, updateFormatState]
+    [editorRef, syncEditorContentToState, updateFormatState]
   );
 
   const closeUrlDialog = useCallback(() => {
@@ -569,10 +589,10 @@ const FormattingToolbar = () => {
       // Krijo <span> tag-un me të gjitha stilat e bashkuara
       const wrapped = `<span style="${styleString}">${inner}</span>`;
       document.execCommand('insertHTML', false, wrapped);
-      setContent(el.innerHTML);
+      syncEditorContentToState();
       updateFormatState();
     },
-    [editorRef, restoreEditorSelection, setContent, updateFormatState]
+    [editorRef, restoreEditorSelection, syncEditorContentToState, updateFormatState]
   );
 
   /**

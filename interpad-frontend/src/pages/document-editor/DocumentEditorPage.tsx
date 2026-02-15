@@ -104,7 +104,7 @@ const DocumentEditorPageInner = () => {
         setDocument({
           id: doc.id,
           title: doc.title,
-          content: doc.content ?? '',
+          pages: [doc.content ?? ''],
           createdAt: doc.createdAt,
           updatedAt: doc.updatedAt,
           version: doc.version,

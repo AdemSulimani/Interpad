@@ -16,9 +16,21 @@ export type { ToastType } from './VisualIndicators';
 export { default as DocumentEditorPage } from './DocumentEditorPage';
 export * from './components';
 export type { DocumentModel } from './types/document';
+export { getDocumentContent, documentFromApiContent } from './types/document';
 export { getPlainTextFromContent } from './utils/getPlainTextFromContent';
 export { getTextCounts, type TextCounts } from './utils/getTextCounts';
+export {
+  getDocumentPageHeightPx,
+  measurePageContentHeight,
+  getPageOverflow,
+  hasPageOverflow,
+  MEASURE_CLASS,
+  MEASURE_WRAPPER_ID,
+  type PageOverflowResult,
+} from './utils/measurePageOverflow';
+export { splitPageContent, splitContentIntoPages, type SplitPageContentResult } from './utils/splitPageContent';
 export { useDocumentTextCounts } from './hooks/useDocumentTextCounts';
+export { usePageOverflow } from './hooks/usePageOverflow';
 export { DocumentEditorProvider, useDocumentEditor } from './context/DocumentEditorContext';
 export type { DocumentEditorContextValue, SaveStatus } from './context/DocumentEditorContext';
 

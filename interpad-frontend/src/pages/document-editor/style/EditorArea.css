@@ -16,6 +16,18 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  gap: 24px;
+}
+
+/* Hapi 7: një “fletë” për çdo faqe – lartësi fikse, hapësirë midis faqesh */
+.editor-page {
+  width: 100%;
+  height: var(--document-page-height);
+  min-height: var(--document-page-height);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* Custom Scrollbar Styling */
@@ -44,9 +56,14 @@
   scrollbar-color: #d0d0d0 #f5f5f5;
 }
 
+/* Lartësia e një faqeje për logjikën e pagination (overflow → faqe e re).
+   Përdoret nga getComputedStyle / measuring div në hapat e ardhshëm. */
 .editor-area {
   width: 100%;
+  max-width: 100%;
   min-height: 100%;
+  flex: 1;
+  box-sizing: border-box;
   background-color: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -59,6 +76,7 @@
   color: #333333;
   overflow-wrap: break-word;
   word-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Placeholder styling when empty */

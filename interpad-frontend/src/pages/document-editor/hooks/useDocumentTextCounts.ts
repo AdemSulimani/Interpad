@@ -4,7 +4,7 @@ import { getTextCounts, type TextCounts } from '../utils/getTextCounts';
 
 /**
  * Llogarit word count, character count dhe character count without spaces
- * nga document.content (HTML). Përdoret në StatusBar.
+ * nga përmbajtja e dokumentit (HTML, e dhënë si string). Përdoret në StatusBar.
  *
  * Numrat përditësohen çdo herë që ndryshon content: kur komponenti ri-renderon
  * me document nga context (pas setContent nga EditorArea / FormattingToolbar),

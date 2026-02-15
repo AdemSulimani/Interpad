@@ -4,6 +4,7 @@ import { useCallback, useRef, useEffect } from 'react';
 import { useDocumentEditor } from './context/DocumentEditorContext';
 import { createDocument, updateDocument } from '../../services';
 import type { DocumentModel } from './types/document';
+import { getDocumentContent } from './types/document';
 
 const SAVED_RESET_MS = 2000;
 
@@ -34,7 +35,7 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
     }
 
     try {
-      const payload = { title: document.title, content: document.content };
+      const payload = { title: document.title, content: getDocumentContent(document) };
       const isNew = document.id == null;
 
       // Hapi 3: Trajto rastin e dokumentit të ri
@@ -50,7 +51,7 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
       const newDoc: DocumentModel = {
         id: doc.id,
         title: doc.title,
-        content: doc.content,
+        pages: [doc.content ?? ''],
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
         version: doc.version,
@@ -94,7 +95,7 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
       // Nëse ka gabim, reset flag-u
       isSavingNewDocumentRef.current = false;
     }
-  }, [document.id, document.title, document.content, setDocument, setSaveStatus, clearUnsavedChanges, navigate]);
+  }, [document.id, document.title, document.pages, setDocument, setSaveStatus, clearUnsavedChanges, navigate]);
 
   useEffect(() => {
     return () => {
