@@ -48,10 +48,11 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
         ? await createDocument(payload)
         : await updateDocument(document.id as string, payload);
 
+      // Ruaj strukturën e faqesh të editorit; API kthen content të bashkuar, por ne duam të mbajmë pages[]
       const newDoc: DocumentModel = {
         id: doc.id,
         title: doc.title,
-        pages: [doc.content ?? ''],
+        pages: document.pages.length > 0 ? document.pages : [doc.content ?? ''],
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
         version: doc.version,

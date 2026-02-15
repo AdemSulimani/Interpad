@@ -11,7 +11,7 @@ import StatusBar from './StatusBar';
 import { AutoSaveIndicator, ConnectionStatus } from './VisualIndicators';
 import Modal, { ModalFooter } from './Modal';
 import { getDocument } from '../../services';
-import { getDefaultDocument } from './types/document';
+import { getDefaultDocument, contentToPages } from './types/document';
 
 const LEAVE_CONFIRM_TITLE = 'Dilni pa ruajtur?';
 const LEAVE_CONFIRM_MESSAGE = 'A jeni të sigurt që dëshironi të dilni? Nuk i keni ruajtur ndryshimet.';
@@ -104,7 +104,7 @@ const DocumentEditorPageInner = () => {
         setDocument({
           id: doc.id,
           title: doc.title,
-          pages: [doc.content ?? ''],
+          pages: contentToPages(doc.content),
           createdAt: doc.createdAt,
           updatedAt: doc.updatedAt,
           version: doc.version,

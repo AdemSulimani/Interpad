@@ -20,15 +20,24 @@ export interface DocumentModel {
   version?: number;
 }
 
+/** Delimiter midis faqeve në content të ruajtur – për të rikthyer faqet kur ngarkojmë. */
+export const PAGE_DELIMITER = '<!-- INTERPAD-PAGE -->';
+
 /** Kthen përmbajtjen e plotë të dokumentit (të gjitha faqet bashkë) – për API, word count, etj. */
 export function getDocumentContent(doc: DocumentModel): string {
-  return doc.pages.join('');
+  return doc.pages.join(PAGE_DELIMITER);
+}
+
+/** Ndan content të ruajtur në faqe; dokumente pa delimiter mbeten një faqe (backward compatibility). */
+export function contentToPages(content: string | null | undefined): string[] {
+  const raw = (content ?? '').trim() || DEFAULT_PAGE_HTML;
+  if (!raw.includes(PAGE_DELIMITER)) return [raw];
+  return raw.split(PAGE_DELIMITER).map((p) => p.trim() || DEFAULT_PAGE_HTML);
 }
 
 /** Konverton dokument nga API (me content) në DocumentModel (me pages). Backward compatibility. */
 export function documentFromApiContent(apiDoc: { content?: string | null }): { pages: string[] } {
-  const content = apiDoc.content?.trim() || DEFAULT_PAGE_HTML;
-  return { pages: [content] };
+  return { pages: contentToPages(apiDoc.content) };
 }
 
 /** Vlera fillestare për dokument të ri */
