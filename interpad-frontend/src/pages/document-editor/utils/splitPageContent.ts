@@ -63,9 +63,21 @@ function findTextSplitOffset(
   return lastFit;
 }
 
+/** Kthen të gjitha text node-at e një elementi në rend dokument. */
+function getTextNodesInOrder(root: Node): Text[] {
+  const out: Text[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  let n: Node | null = walker.nextNode();
+  while (n) {
+    out.push(n as Text);
+    n = walker.nextNode();
+  }
+  return out;
+}
+
 /**
  * Ndah një element të vetëm që e kalon lartësinë e faqes: pjesa që futet (page 1) dhe pjesa që mbetet (page 2).
- * Përdoret kur overflowIndex === 0 dhe ka vetëm një fëmijë (një paragraf ose bllok shumë të gjatë).
+ * Përdor klone të plota (cloneNode(true)) dhe ndërron vetëm përmbajtjen e text node-ave, që të ruhen stilet (span, ngjyrë, etj.).
  */
 function splitSingleOverflowingElement(
   element: Element,
@@ -75,13 +87,7 @@ function splitSingleOverflowingElement(
   const pageBottom = innerTop + pageHeightPx;
   const splitThreshold = pageBottom + OVERFLOW_TOLERANCE_PX;
   const range = document.createRange();
-  const textNodes: Text[] = [];
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
-  let n: Node | null = walker.nextNode();
-  while (n) {
-    textNodes.push(n as Text);
-    n = walker.nextNode();
-  }
+  const textNodes: Text[] = getTextNodesInOrder(element);
   if (textNodes.length === 0) {
     const tag = element.tagName.toLowerCase();
     return { htmlPage1: `<${tag}><br></${tag}>`, htmlPage2: element.outerHTML };
@@ -99,21 +105,21 @@ function splitSingleOverflowingElement(
   if (splitNodeIndex < 0) {
     return { htmlPage1: element.outerHTML, htmlPage2: EMPTY_PAGE_HTML };
   }
-  const clone1 = element.cloneNode(false) as HTMLElement;
-  const clone2 = element.cloneNode(false) as HTMLElement;
-  clone1.innerHTML = '';
-  clone2.innerHTML = '';
+  const clone1 = element.cloneNode(true) as HTMLElement;
+  const clone2 = element.cloneNode(true) as HTMLElement;
+  const textNodes1 = getTextNodesInOrder(clone1);
+  const textNodes2 = getTextNodesInOrder(clone2);
   for (let i = 0; i < textNodes.length; i++) {
     const text = textNodes[i].textContent ?? '';
     if (i < splitNodeIndex) {
-      clone1.appendChild(document.createTextNode(text));
+      textNodes1[i].data = text;
+      textNodes2[i].data = '';
     } else if (i > splitNodeIndex) {
-      clone2.appendChild(document.createTextNode(text));
+      textNodes1[i].data = '';
+      textNodes2[i].data = text;
     } else {
-      const before = text.slice(0, splitOffset);
-      const after = text.slice(splitOffset);
-      if (before) clone1.appendChild(document.createTextNode(before));
-      if (after) clone2.appendChild(document.createTextNode(after));
+      textNodes1[i].data = text.slice(0, splitOffset);
+      textNodes2[i].data = text.slice(splitOffset);
     }
   }
   const htmlPage1 = clone1.textContent?.trim() ? clone1.outerHTML : EMPTY_PAGE_HTML;

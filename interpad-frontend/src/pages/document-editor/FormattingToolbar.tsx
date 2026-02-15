@@ -85,6 +85,7 @@ const FormattingToolbar = () => {
     setPageContent,
     document: editorDocument,
     focusedPageIndex,
+    saveEditorSelection,
     restoreEditorSelection,
   } = useDocumentEditor();
 
@@ -236,6 +237,12 @@ const FormattingToolbar = () => {
   const keepSelection = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
   }, []);
+
+  /** Si keepSelection, por edhe ruan selection-in tani (për color picker: para se dialogu të hapet dhe fokusi të humbasë). */
+  const keepAndSaveSelection = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    saveEditorSelection();
+  }, [saveEditorSelection]);
 
   /**
    * Konverton ngjyrë RGB/RGBA në hex format
@@ -775,7 +782,7 @@ const FormattingToolbar = () => {
               type="button"
               className="toolbar-btn color-picker-btn"
               title="Text Color"
-              onMouseDown={keepSelection}
+              onMouseDown={keepAndSaveSelection}
               onClick={() => textColorInputRef.current?.click()}
               aria-label="Text Color"
             >
@@ -797,7 +804,7 @@ const FormattingToolbar = () => {
               type="button"
               className="toolbar-btn color-picker-btn"
               title="Background Color"
-              onMouseDown={keepSelection}
+              onMouseDown={keepAndSaveSelection}
               onClick={() => bgColorInputRef.current?.click()}
               aria-label="Background Color"
             >

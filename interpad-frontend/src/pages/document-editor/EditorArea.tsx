@@ -142,13 +142,13 @@ const EditorArea = () => {
     }
   }, [document.pages.length, setFocusedPageIndex]);
 
-  // Mbaj editorRef në sync me faqen e fokusuar (kur ndryshon focusedPageIndex).
+  // Mbaj editorRef në sync me faqen e fokusuar (kur ndryshon focusedPageIndex ose numri i faqeve).
   // Invariant: editorRef.current duhet të tregojë gjithmonë elementin e faqes së fokusuar,
   // që toolbar-i dhe syncEditorContentToState të punojnë mbi faqen e duhur (jo gjithmonë faqen 1).
   useEffect(() => {
     const el = pageRefs.current[focusedPageIndex];
     if (el && editorRef) editorRef.current = el;
-  }, [focusedPageIndex, editorRef]);
+  }, [focusedPageIndex, document.pages.length, editorRef]);
 
   // Verifikim vetëm në dev: editorRef duhet të përputhet me faqen e fokusuar kur ka shumë faqe.
   useEffect(() => {
@@ -195,11 +195,13 @@ const EditorArea = () => {
       if (newPages.length > 1) focusPageAfterSplitRef.current = pageIndex + 1;
       setPages(nextPages);
       el.innerHTML = newPages[0]?.trim() || EMPTY_PAGE_HTML;
+      // Sync editorRef menjëherë pas split: faqja e ndryshuar (pageIndex) mbetet e vlefshme deri sa re-render + useEffect të vendosin ref për faqen e fokusuar.
+      if (editorRef) editorRef.current = el;
     } else {
       if (pageIndex === 0) setContent(html);
       else setPageContent(pageIndex, html);
     }
-  }, [setContent, setPageContent, setPages]);
+  }, [setContent, setPageContent, setPages, editorRef]);
 
   const scheduleFlush = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -218,11 +220,14 @@ const EditorArea = () => {
     [scheduleFlush]
   );
 
-  const onPageFocus = useCallback((pageIndex: number) => () => {
-    const el = pageRefs.current[pageIndex];
-    if (el && editorRef) editorRef.current = el;
-    setFocusedPageIndex(pageIndex);
-  }, [editorRef, setFocusedPageIndex]);
+  const onPageFocus = useCallback(
+    (pageIndex: number) => (e: React.FocusEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      if (el && editorRef) editorRef.current = el;
+      setFocusedPageIndex(pageIndex);
+    },
+    [editorRef, setFocusedPageIndex]
+  );
 
   useEffect(() => {
     return () => {
@@ -250,6 +255,8 @@ const EditorArea = () => {
             <div
               ref={(node) => {
                 pageRefs.current[pageIndex] = node;
+                // Kur elementi hiqet (node === null), pastro editorRef nëse ishte faqja e fokusuar – shmang ref të vjetër (stale).
+                if (!node && pageIndex === focusedPageIndex && editorRef) editorRef.current = null;
                 // Vetëm faqja e fokusuar e vendos editorRef (jo gjithmonë faqja 0), që toolbar të aplikohet në faqen e duhur.
                 if (node && pageIndex === focusedPageIndex && editorRef) editorRef.current = node;
                 if (node && pageIndex > 0) {
