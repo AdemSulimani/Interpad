@@ -92,6 +92,43 @@
   box-shadow: 0 2px 12px rgba(68, 180, 146, 0.15);
 }
 
+/* Bubble "Add comment" mbi selection (hapi 2) */
+.editor-comment-bubble {
+  pointer-events: auto;
+}
+
+.editor-comment-bubble-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: #44b492;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.editor-comment-bubble-btn:hover {
+  background-color: #3a9d7d;
+  transform: scale(1.05);
+}
+
+.editor-comment-bubble-btn:focus {
+  outline: 2px solid #44b492;
+  outline-offset: 2px;
+}
+
+/* Hapi 6: highlight teksti që ka koment */
+.editor-comment-highlight {
+  background-color: rgba(255, 235, 0, 0.35);
+  border-radius: 2px;
+}
+
 /* Typography styles for content */
 .editor-area p {
   margin: 0 0 12px 0;

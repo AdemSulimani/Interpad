@@ -1,53 +1,112 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import './style/DocumentSidebar.css';
+import { useDocumentEditor } from './context/DocumentEditorContext';
+import { getDocumentContent } from './types/document';
+import { useDocumentTextCounts } from './hooks/useDocumentTextCounts';
+import { getDocumentComments, deleteDocumentComment, resolveDocumentComment, type AuthUser, type DocumentComment } from '../../services';
 
-const DocumentSidebar = () => {
-  const [activeTab, setActiveTab] = useState<'outline' | 'comments' | 'info'>('outline');
+function formatDate(iso?: string | null): string {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+  } catch {
+    return '—';
+  }
+}
 
-  // Mock data - në realitet do të vijnë nga props ose state management
-  const headings = [
-    { id: 1, level: 1, text: 'Introduction', line: 1 },
-    { id: 2, level: 2, text: 'Getting Started', line: 5 },
-    { id: 3, level: 2, text: 'Installation', line: 12 },
-    { id: 4, level: 3, text: 'Requirements', line: 15 },
-    { id: 5, level: 1, text: 'Features', line: 25 },
-    { id: 6, level: 2, text: 'Core Features', line: 30 },
-    { id: 7, level: 2, text: 'Advanced Features', line: 45 },
-  ];
+interface DocumentSidebarProps {
+  /** Kur ndryshon, lista e komenteve rifetchet (pas shtimit të komentit të ri). */
+  refreshCommentsKey?: number;
+  /** Hapi 5: hap formën "Add comment" pa selection (koment i përgjithshëm). */
+  onRequestAddCommentWithoutSelection?: () => void;
+  /** Hapi 7: ID i komentit që duhet fokusuar (scroll në view). */
+  focusedCommentId?: string | null;
+  /** Thirret pasi komenti i fokusuar është shfaqur. */
+  onFocusedCommentSeen?: () => void;
+  /** Thirret pas fshirjes së një komenti (për të rifreskuar listën). */
+  onCommentDeleted?: () => void;
+}
 
-  const comments = [
-    { id: 1, author: 'John Doe', text: 'This section needs more details', date: '2024-01-15', line: 10 },
-    { id: 2, author: 'Jane Smith', text: 'Great explanation!', date: '2024-01-16', line: 25 },
-  ];
+const DocumentSidebar = ({
+  refreshCommentsKey = 0,
+  onRequestAddCommentWithoutSelection,
+  focusedCommentId = null,
+  onFocusedCommentSeen,
+  onCommentDeleted,
+}: DocumentSidebarProps) => {
+  const [activeTab, setActiveTab] = useState<'comments' | 'info'>('comments');
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const commentsListRef = useRef<HTMLDivElement | null>(null);
+  const { document, scrollToCommentAnchor, comments, setComments } = useDocumentEditor();
+  const { wordCount, characterCount } = useDocumentTextCounts(getDocumentContent(document));
 
-  const documentInfo = {
-    author: 'John Doe',
-    createdAt: '2024-01-10',
-    modifiedAt: '2024-01-16',
-    status: 'Draft',
-    version: '1.2',
-    wordCount: 1250,
-    characterCount: 7850,
+  const canScrollToAnchor = (comment: DocumentComment): boolean => {
+    const a = comment.anchor;
+    return (
+      a != null &&
+      typeof a.pageIndex === 'number' &&
+      typeof a.startOffset === 'number' &&
+      typeof a.endOffset === 'number'
+    );
   };
+
+  const authorName = useMemo(() => {
+    try {
+      const userJson = localStorage.getItem('user');
+      const user = userJson ? (JSON.parse(userJson) as AuthUser) : null;
+      return user?.name || user?.email || '—';
+    } catch {
+      return '—';
+    }
+  }, []);
+
+  // Hapi 7: kur focusedCommentId ndryshon, kalojmë te Comments dhe scroll te komenti.
+  useEffect(() => {
+    if (!focusedCommentId) return;
+    setActiveTab('comments');
+    const t = requestAnimationFrame(() => {
+      const list = commentsListRef.current;
+      if (!list) return;
+      const el = list.querySelector(`[data-comment-id="${focusedCommentId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        onFocusedCommentSeen?.();
+      }
+    });
+    return () => cancelAnimationFrame(t);
+  }, [focusedCommentId, comments, onFocusedCommentSeen]);
+
+  useEffect(() => {
+    if (!document.id) {
+      setComments([]);
+      setCommentsError(null);
+      return;
+    }
+    let cancelled = false;
+    setCommentsLoading(true);
+    setCommentsError(null);
+    getDocumentComments(document.id)
+      .then((list) => {
+        if (!cancelled) setComments(list);
+      })
+      .catch((err) => {
+        if (!cancelled) setCommentsError(err instanceof Error ? err.message : 'Failed to load comments');
+      })
+      .finally(() => {
+        if (!cancelled) setCommentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [document.id, refreshCommentsKey]);
 
   return (
     <aside className="document-sidebar">
       <div className="sidebar-tabs">
-        <button
-          className={`sidebar-tab ${activeTab === 'outline' ? 'active' : ''}`}
-          onClick={() => setActiveTab('outline')}
-          title="Outline"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="8" y1="6" x2="21" y2="6"/>
-            <line x1="8" y1="12" x2="21" y2="12"/>
-            <line x1="8" y1="18" x2="21" y2="18"/>
-            <line x1="3" y1="6" x2="3.01" y2="6"/>
-            <line x1="3" y1="12" x2="3.01" y2="12"/>
-            <line x1="3" y1="18" x2="3.01" y2="18"/>
-          </svg>
-          <span>Outline</span>
-        </button>
         <button
           className={`sidebar-tab ${activeTab === 'comments' ? 'active' : ''}`}
           onClick={() => setActiveTab('comments')}
@@ -74,67 +133,117 @@ const DocumentSidebar = () => {
       </div>
 
       <div className="sidebar-content">
-        {/* Outline Tab */}
-        {activeTab === 'outline' && (
-          <div className="sidebar-section outline-section">
-            <div className="section-header">
-              <h3>Document Outline</h3>
-            </div>
-            <div className="outline-list">
-              {headings.length > 0 ? (
-                headings.map((heading) => (
-                  <button
-                    key={heading.id}
-                    className={`outline-item outline-level-${heading.level}`}
-                    onClick={() => {
-                      // Scroll to heading in editor
-                      console.log('Navigate to line:', heading.line);
-                    }}
-                  >
-                    <span className="outline-text">{heading.text}</span>
-                  </button>
-                ))
-              ) : (
-                <div className="empty-state">
-                  <p>No headings found</p>
-                  <span>Add headings to see the outline</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Comments Tab */}
         {activeTab === 'comments' && (
           <div className="sidebar-section comments-section">
             <div className="section-header">
               <h3>Comments</h3>
-              <button className="add-comment-btn" title="Add Comment">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <button
+                type="button"
+                className="add-comment-btn sidebar-add-comment-btn"
+                title="Add comment"
+                aria-label="Add comment"
+                onClick={onRequestAddCommentWithoutSelection}
+                disabled={!onRequestAddCommentWithoutSelection}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="12" y1="5" x2="12" y2="19"/>
                   <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
               </button>
             </div>
-            <div className="comments-list">
-              {comments.length > 0 ? (
+            <div className="comments-list" ref={commentsListRef}>
+              {commentsLoading ? (
+                <div className="empty-state">
+                  <p>Loading comments…</p>
+                </div>
+              ) : commentsError ? (
+                <div className="empty-state">
+                  <p>{commentsError}</p>
+                </div>
+              ) : comments.length > 0 ? (
                 comments.map((comment) => (
-                  <div key={comment.id} className="comment-item">
+                  <div key={comment.id} className={`comment-item ${comment.resolved ? 'comment-item-resolved' : ''}`} data-comment-id={comment.id}>
                     <div className="comment-header">
-                      <div className="comment-author">{comment.author}</div>
-                      <div className="comment-date">{comment.date}</div>
+                      <div className="comment-author">{comment.author?.name || comment.author?.email || '—'}</div>
+                      <div className="comment-date">{formatDate(comment.createdAt)}</div>
                     </div>
-                    <div className="comment-text">{comment.text}</div>
+                    {comment.anchor?.selectedText && (
+                      <div className="comment-quote">"{comment.anchor.selectedText.slice(0, 60)}{comment.anchor.selectedText.length > 60 ? '…' : ''}"</div>
+                    )}
+                    <div className="comment-text">{comment.content}</div>
                     <div className="comment-actions">
-                      <button className="comment-action-btn" title="Reply">Reply</button>
-                      <button className="comment-action-btn" title="Resolve">Resolve</button>
+                      {canScrollToAnchor(comment) && (
+                        <button
+                          type="button"
+                          className="comment-action-btn comment-action-goto"
+                          title="Go to text in document"
+                          onClick={() =>
+                            scrollToCommentAnchor({
+                              pageIndex: comment.anchor!.pageIndex!,
+                              startOffset: comment.anchor!.startOffset!,
+                              endOffset: comment.anchor!.endOffset!,
+                            })
+                          }
+                        >
+                          Go to
+                        </button>
+                      )}
+                      {document.id && (
+                        comment.resolved ? (
+                          <span className="comment-resolved-label">Resolved</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="comment-action-btn"
+                            title="Mark as resolved"
+                            disabled={resolvingId === comment.id}
+                            onClick={async () => {
+                              if (!document.id) return;
+                              setResolvingId(comment.id);
+                              try {
+                                await resolveDocumentComment(document.id, comment.id, true);
+                                onCommentDeleted?.();
+                              } catch {
+                                setResolvingId(null);
+                              } finally {
+                                setResolvingId(null);
+                              }
+                            }}
+                          >
+                            {resolvingId === comment.id ? '…' : 'Resolve'}
+                          </button>
+                        )
+                      )}
+                      {document.id && (
+                        <button
+                          type="button"
+                          className="comment-action-btn comment-action-delete"
+                          title="Delete comment"
+                          disabled={deletingId === comment.id}
+                          onClick={async () => {
+                            if (!document.id) return;
+                            setDeletingId(comment.id);
+                            try {
+                              await deleteDocumentComment(document.id, comment.id);
+                              onCommentDeleted?.();
+                            } catch {
+                              setDeletingId(null);
+                            } finally {
+                              setDeletingId(null);
+                            }
+                          }}
+                        >
+                          {deletingId === comment.id ? '…' : 'Delete'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="empty-state">
-                  <p>No comments yet</p>
-                  <span>Add comments to collaborate</span>
+                <div className="empty-state comments-empty">
+                  <p className="empty-state-title">No comments yet</p>
+                  <p className="empty-state-hint">Select text in the document and click the + button to add a comment.</p>
                 </div>
               )}
             </div>
@@ -150,32 +259,24 @@ const DocumentSidebar = () => {
             <div className="info-list">
               <div className="info-item">
                 <span className="info-label">Author</span>
-                <span className="info-value">{documentInfo.author}</span>
+                <span className="info-value">{authorName}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Created</span>
-                <span className="info-value">{documentInfo.createdAt}</span>
+                <span className="info-value">{formatDate(document.createdAt)}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Modified</span>
-                <span className="info-value">{documentInfo.modifiedAt}</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">Status</span>
-                <span className="info-value info-status">{documentInfo.status}</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">Version</span>
-                <span className="info-value">{documentInfo.version}</span>
+                <span className="info-value">{formatDate(document.updatedAt)}</span>
               </div>
               <div className="info-divider"></div>
               <div className="info-item">
                 <span className="info-label">Words</span>
-                <span className="info-value">{documentInfo.wordCount.toLocaleString()}</span>
+                <span className="info-value">{wordCount.toLocaleString()}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Characters</span>
-                <span className="info-value">{documentInfo.characterCount.toLocaleString()}</span>
+                <span className="info-value">{characterCount.toLocaleString()}</span>
               </div>
             </div>
           </div>

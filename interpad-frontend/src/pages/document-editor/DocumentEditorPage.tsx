@@ -2,10 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import './style/DocumentEditorStyles.css';
 import './style/DocumentEditorPage.css';
+import './style/DocumentSidebar.css';
 import { DocumentEditorProvider, useDocumentEditor } from './context/DocumentEditorContext';
 import DocumentEditorHeader from './DocumentEditorHeader';
 import FormattingToolbar from './FormattingToolbar';
 import EditorArea from './EditorArea';
+import type { CommentSelectionAnchor } from './EditorArea';
+import AddCommentPopover from './AddCommentPopover';
 import DocumentSidebar from './DocumentSidebar';
 import StatusBar from './StatusBar';
 import { AutoSaveIndicator, ConnectionStatus } from './VisualIndicators';
@@ -16,13 +19,44 @@ import { getDefaultDocument, contentToPages } from './types/document';
 const LEAVE_CONFIRM_TITLE = 'Dilni pa ruajtur?';
 const LEAVE_CONFIRM_MESSAGE = 'A jeni të sigurt që dëshironi të dilni? Nuk i keni ruajtur ndryshimet.';
 
+/** Kthen kohën relative nga updatedAt (p.sh. "Just now", "2 min ago") për treguesin "Last saved". */
+function formatLastSaved(iso?: string | null): string | undefined {
+  if (!iso) return undefined;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return undefined;
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  return d.toLocaleDateString();
+}
+
 const DocumentEditorPageInner = () => {
   const { documentId } = useParams<{ documentId?: string }>();
   const navigate = useNavigate();
   const { openNewDocument, hasUnsavedChanges, setDocument, saveStatus, document: currentDocument, clearUnsavedChanges } = useDocumentEditor();
+  const lastSavedLabel = formatLastSaved(currentDocument.updatedAt);
+  const indicatorStatus =
+    saveStatus === 'error' ? 'error' as const
+    : saveStatus === 'saving' ? 'saving' as const
+    : saveStatus === 'saved' || (saveStatus === 'idle' && lastSavedLabel) ? 'saved' as const
+    : 'idle';
+  const indicatorLastSaved =
+    indicatorStatus === 'saved' ? lastSavedLabel : undefined;
   const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [documentLoadError, setDocumentLoadError] = useState<string | null>(null);
   const [isLoadingDocument, setIsLoadingDocument] = useState(false);
+  const [addCommentOpen, setAddCommentOpen] = useState<{
+    anchor: CommentSelectionAnchor | null;
+    rect: { top: number; left: number; width: number; height: number };
+  } | null>(null);
+  const [refreshCommentsKey, setRefreshCommentsKey] = useState(0);
+  const [focusedCommentId, setFocusedCommentId] = useState<string | null>(null);
 
   // Hapi 4: Përmirëso logjikën e useBlocker
   // Kontrollo nëse save-i është duke u procesuar ose sapo u përfundua
@@ -230,7 +264,26 @@ const DocumentEditorPageInner = () => {
 
         {/* Sidebar */}
         <aside className={`document-editor-sidebar-wrapper ${isSidebarOpen ? 'sidebar-visible' : 'sidebar-hidden'}`}>
-          <DocumentSidebar />
+          <DocumentSidebar
+            refreshCommentsKey={refreshCommentsKey}
+            focusedCommentId={focusedCommentId}
+            onFocusedCommentSeen={() => setFocusedCommentId(null)}
+            onCommentDeleted={() => setRefreshCommentsKey((k) => k + 1)}
+            onRequestAddCommentWithoutSelection={
+              currentDocument.id
+                ? () =>
+                    setAddCommentOpen({
+                      anchor: null,
+                      rect: {
+                        top: 120,
+                        left: typeof window !== 'undefined' ? window.innerWidth / 2 - 180 : 200,
+                        width: 360,
+                        height: 0,
+                      },
+                    })
+                : undefined
+            }
+          />
         </aside>
 
         {/* Main Content Area */}
@@ -251,7 +304,21 @@ const DocumentEditorPageInner = () => {
                 <p className="document-editor-doc-loading-text">Duke ngarkuar dokumentin…</p>
               </div>
             ) : (
-              <EditorArea />
+              <EditorArea
+                onAddCommentClick={
+                  currentDocument.id
+                    ? (anchor, rect) => setAddCommentOpen({ anchor, rect })
+                    : undefined
+                }
+                onCommentHighlightClick={
+                  currentDocument.id
+                    ? (commentId) => {
+                        setFocusedCommentId(commentId);
+                        setIsSidebarOpen(true);
+                      }
+                    : undefined
+                }
+              />
             )}
           </div>
 
@@ -260,10 +327,36 @@ const DocumentEditorPageInner = () => {
         </main>
       </div>
 
+      {/* Add Comment popover (hapi 3) – vetëm kur dokumenti ka id (është ruajtur) */}
+      {addCommentOpen && currentDocument.id && (
+        <>
+          <div
+            className="add-comment-backdrop"
+            role="presentation"
+            aria-hidden
+            onClick={() => setAddCommentOpen(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'transparent' }}
+          />
+          <AddCommentPopover
+            documentId={currentDocument.id}
+            anchor={addCommentOpen.anchor}
+            rect={addCommentOpen.rect}
+            onClose={() => setAddCommentOpen(null)}
+            onSuccess={(commentId) => {
+              setRefreshCommentsKey((k) => k + 1);
+              if (commentId) {
+                setFocusedCommentId(commentId);
+                setIsSidebarOpen(true);
+              }
+            }}
+          />
+        </>
+      )}
+
       {/* Visual Indicators (Fixed Position) */}
       <div className="document-editor-indicators">
         <div className="indicators-left">
-          <AutoSaveIndicator status="saved" lastSaved="2 min ago" />
+          <AutoSaveIndicator status={indicatorStatus} lastSaved={indicatorLastSaved} />
         </div>
         <div className="indicators-right">
           <ConnectionStatus status="connected" showText={false} />

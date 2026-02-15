@@ -1,3 +1,4 @@
+/* Scoped në .document-sidebar që stilet të mos mbivendosen */
 .document-sidebar {
   width: 250px;
   min-width: 250px;
@@ -7,16 +8,16 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  font-family: 'Quicksand', sans-serif;
 }
 
-/* Sidebar Tabs */
-.sidebar-tabs {
+.document-sidebar .sidebar-tabs {
   display: flex;
   border-bottom: 1px solid #e0e0e0;
   background-color: #f9f9f9;
 }
 
-.sidebar-tab {
+.document-sidebar .sidebar-tab {
   flex: 1;
   display: flex;
   align-items: center;
@@ -35,28 +36,28 @@
   position: relative;
 }
 
-.sidebar-tab:hover {
+.document-sidebar .sidebar-tab:hover {
   background-color: #f5f5f5;
   color: #44b492;
 }
 
-.sidebar-tab.active {
+.document-sidebar .sidebar-tab.active {
   color: #44b492;
   border-bottom-color: #44b492;
   background-color: #ffffff;
 }
 
-.sidebar-tab svg {
+.document-sidebar .sidebar-tab svg {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
 }
 
-.sidebar-tab span:not(.tab-badge) {
+.document-sidebar .sidebar-tab span:not(.tab-badge) {
   display: none;
 }
 
-.tab-badge {
+.document-sidebar .tab-badge {
   position: absolute;
   top: 6px;
   right: 6px;
@@ -70,42 +71,39 @@
   text-align: center;
 }
 
-/* Sidebar Content */
-.sidebar-content {
+.document-sidebar .sidebar-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-/* Custom Scrollbar for Sidebar */
-.sidebar-content::-webkit-scrollbar {
+.document-sidebar .sidebar-content::-webkit-scrollbar {
   width: 8px;
 }
 
-.sidebar-content::-webkit-scrollbar-track {
+.document-sidebar .sidebar-content::-webkit-scrollbar-track {
   background: #f9f9f9;
 }
 
-.sidebar-content::-webkit-scrollbar-thumb {
+.document-sidebar .sidebar-content::-webkit-scrollbar-thumb {
   background-color: #d0d0d0;
   border-radius: 4px;
 }
 
-.sidebar-content::-webkit-scrollbar-thumb:hover {
+.document-sidebar .sidebar-content::-webkit-scrollbar-thumb:hover {
   background-color: #b0b0b0;
 }
 
-.sidebar-content {
+.document-sidebar .sidebar-content {
   scrollbar-width: thin;
   scrollbar-color: #d0d0d0 #f9f9f9;
 }
 
-/* Sidebar Sections */
-.sidebar-section {
+.document-sidebar .sidebar-section {
   padding: 16px;
 }
 
-.section-header {
+.document-sidebar .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -114,7 +112,7 @@
   border-bottom: 1px solid #e0e0e0;
 }
 
-.section-header h3 {
+.document-sidebar .section-header h3 {
   font-family: 'Quicksand', sans-serif;
   font-size: 16px;
   font-weight: 600;
@@ -122,39 +120,48 @@
   margin: 0;
 }
 
-.add-comment-btn {
-  display: flex;
+.document-sidebar .sidebar-add-comment-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  background-color: #44b492;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  background: none;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  color: #ffffff;
-  transition: all 0.2s;
-  padding: 0;
+  color: #44b492;
+  transition: color 0.2s, background 0.2s;
 }
 
-.add-comment-btn:hover {
-  background-color: #3a9a7d;
-  transform: scale(1.1);
+.document-sidebar .sidebar-add-comment-btn:hover:not(:disabled) {
+  color: #3a9d7d;
+  background: rgba(68, 180, 146, 0.12);
 }
 
-.add-comment-btn svg {
-  width: 16px;
-  height: 16px;
+.document-sidebar .sidebar-add-comment-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-/* Outline Section */
-.outline-list {
+.document-sidebar .sidebar-add-comment-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  flex-shrink: 0;
+  display: block;
+}
+
+.document-sidebar .outline-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.outline-item {
+.document-sidebar .outline-item {
   display: flex;
   align-items: center;
   width: 100%;
@@ -170,71 +177,80 @@
   transition: all 0.2s;
 }
 
-.outline-item:hover {
+.document-sidebar .outline-item:hover {
   background-color: #f5f5f5;
   color: #44b492;
 }
 
-.outline-level-1 {
+.document-sidebar .outline-level-1 {
   font-weight: 600;
   color: #333333;
   font-size: 15px;
 }
 
-.outline-level-2 {
+.document-sidebar .outline-level-2 {
   padding-left: 20px;
   font-weight: 500;
   color: #444444;
 }
 
-.outline-level-3 {
+.document-sidebar .outline-level-3 {
   padding-left: 36px;
   font-weight: 400;
   color: #555555;
   font-size: 13px;
 }
 
-.outline-text {
+.document-sidebar .outline-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Comments Section */
-.comments-list {
+.document-sidebar .comments-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.comment-item {
+.document-sidebar .comment-item {
   padding: 12px;
   background-color: #f9f9f9;
   border-radius: 6px;
   border: 1px solid #e0e0e0;
 }
 
-.comment-header {
+.document-sidebar .comment-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
 }
 
-.comment-author {
+.document-sidebar .comment-author {
   font-family: 'Quicksand', sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: #333333;
 }
 
-.comment-date {
+.document-sidebar .comment-date {
   font-family: 'Quicksand', sans-serif;
   font-size: 11px;
   color: #999999;
 }
 
-.comment-text {
+.document-sidebar .comment-quote {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 6px;
+  padding-left: 8px;
+  border-left: 3px solid #44b492;
+  font-style: italic;
+}
+
+.document-sidebar .comment-text {
   font-family: 'Quicksand', sans-serif;
   font-size: 13px;
   color: #666666;
@@ -242,14 +258,14 @@
   margin-bottom: 8px;
 }
 
-.comment-actions {
+.document-sidebar .comment-actions {
   display: flex;
   gap: 8px;
   padding-top: 8px;
   border-top: 1px solid #e0e0e0;
 }
 
-.comment-action-btn {
+.document-sidebar .comment-action-btn {
   font-family: 'Quicksand', sans-serif;
   font-size: 11px;
   font-weight: 500;
@@ -261,25 +277,43 @@
   transition: color 0.2s;
 }
 
-.comment-action-btn:hover {
+.document-sidebar .comment-action-delete {
+  color: #888;
+}
+
+.document-sidebar .comment-action-delete:hover:not(:disabled) {
+  color: #c00;
+}
+
+.document-sidebar .comment-resolved-label {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #44b492;
+}
+
+.document-sidebar .comment-item-resolved .comment-resolved-label {
+  color: #888;
+}
+
+.document-sidebar .comment-action-btn:hover {
   color: #3a9a7d;
   text-decoration: underline;
 }
 
-/* Info Section */
-.info-list {
+.document-sidebar .info-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.info-item {
+.document-sidebar .info-item {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.info-label {
+.document-sidebar .info-label {
   font-family: 'Quicksand', sans-serif;
   font-size: 11px;
   font-weight: 600;
@@ -288,14 +322,14 @@
   letter-spacing: 0.5px;
 }
 
-.info-value {
+.document-sidebar .info-value {
   font-family: 'Quicksand', sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: #333333;
 }
 
-.info-status {
+.document-sidebar .info-status {
   display: inline-block;
   padding: 4px 8px;
   background-color: #fff3cd;
@@ -306,31 +340,48 @@
   width: fit-content;
 }
 
-.info-divider {
+.document-sidebar .info-divider {
   height: 1px;
   background-color: #e0e0e0;
   margin: 8px 0;
 }
 
-/* Empty State */
-.empty-state {
+.document-sidebar .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   padding: 32px 16px;
   color: #999999;
 }
 
-.empty-state p {
+.document-sidebar .empty-state p {
   font-family: 'Quicksand', sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: #666666;
-  margin: 0 0 4px 0;
+  margin: 0;
 }
 
-.empty-state span {
-  font-family: 'Quicksand', sans-serif;
+.document-sidebar .empty-state.comments-empty {
+  padding: 40px 20px;
+  gap: 8px;
+}
+
+.document-sidebar .empty-state.comments-empty .empty-state-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #555555;
+  white-space: nowrap;
+}
+
+.document-sidebar .empty-state.comments-empty .empty-state-hint {
   font-size: 12px;
+  font-weight: 400;
   color: #999999;
+  line-height: 1.5;
+  max-width: 200px;
 }
 
 /* Responsive Design */
@@ -340,7 +391,7 @@
     min-width: 220px;
   }
 
-  .sidebar-section {
+  .document-sidebar .sidebar-section {
     padding: 12px;
   }
 }
@@ -357,28 +408,28 @@
     padding: 0;
   }
 
-  .sidebar-tab span:not(.tab-badge) {
+  .document-sidebar .sidebar-tab span:not(.tab-badge) {
     display: none;
   }
 
-  .sidebar-tab {
+  .document-sidebar .sidebar-tab {
     padding: 12px 4px;
   }
 
-  .section-header h3 {
+  .document-sidebar .section-header h3 {
     font-size: 14px;
   }
 
-  .outline-item {
+  .document-sidebar .outline-item {
     padding: 6px 8px;
     font-size: 13px;
   }
 
-  .outline-level-2 {
+  .document-sidebar .outline-level-2 {
     padding-left: 16px;
   }
 
-  .outline-level-3 {
+  .document-sidebar .outline-level-3 {
     padding-left: 28px;
   }
 }
@@ -396,17 +447,16 @@
     padding: 0;
   }
 
-  .sidebar-tab span:not(.tab-badge) {
+  .document-sidebar .sidebar-tab span:not(.tab-badge) {
     display: block;
     font-size: 11px;
   }
 }
 
-/* Focus styles for accessibility */
-.sidebar-tab:focus-visible,
-.outline-item:focus-visible,
-.add-comment-btn:focus-visible,
-.comment-action-btn:focus-visible {
+.document-sidebar .sidebar-tab:focus-visible,
+.document-sidebar .outline-item:focus-visible,
+.document-sidebar .add-comment-btn:focus-visible,
+.document-sidebar .comment-action-btn:focus-visible {
   outline: 2px solid #44b492;
   outline-offset: 2px;
 }

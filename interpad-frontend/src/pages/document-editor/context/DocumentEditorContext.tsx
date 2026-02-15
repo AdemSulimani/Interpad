@@ -4,12 +4,21 @@ import {
   useState,
   useCallback,
   useRef,
+  useEffect,
   type ReactNode,
 } from 'react';
 import type { DocumentModel } from '../types/document';
 import { getDefaultDocument } from '../types/document';
+import type { DocumentComment } from '../../services';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+/** Anchor për scroll te teksti i komentuar (hapi 4). */
+export interface CommentAnchorScroll {
+  pageIndex: number;
+  startOffset: number;
+  endOffset: number;
+}
 
 export interface DocumentEditorContextValue {
   /** Dokumenti aktual (id, title, pages, metadata) */
@@ -50,17 +59,50 @@ export interface DocumentEditorContextValue {
   focusedPageIndex: number;
   /** Vendos faqen e fokusuar (thirret nga EditorArea onFocus). */
   setFocusedPageIndex: (index: number) => void;
+  /** Regjistron funksionin që scroll-on te teksti i komentuar (thirret nga EditorArea). */
+  registerScrollToCommentAnchor: (fn: ((anchor: CommentAnchorScroll) => void) | null) => void;
+  /** Scroll te teksti i komentuar dhe vendos selection mbi të (thirret nga Sidebar kur klikohet një koment). */
+  scrollToCommentAnchor: (anchor: CommentAnchorScroll) => void;
+  /** Lista e komenteve (për sidebar dhe për highlight në editor – hapi 6). */
+  comments: DocumentComment[];
+  /** Vendos listën e komenteve (thirret nga Sidebar pas fetch). */
+  setComments: (comments: DocumentComment[]) => void;
+  /** Niveli i zoom-it të editorit (50–200%, p.sh. 100 = 100%). */
+  zoomLevel: number;
+  /** Vendos nivelin e zoom-it (thirret nga StatusBar). */
+  setZoomLevel: (value: number) => void;
 }
 
 const DocumentEditorContext = createContext<DocumentEditorContextValue | null>(null);
+
+const ZOOM_STORAGE_KEY = 'interpad-editor-zoom';
+const ZOOM_MIN = 50;
+const ZOOM_MAX = 200;
+
+function getStoredZoomLevel(): number {
+  if (typeof window === 'undefined') return 100;
+  try {
+    const stored = window.localStorage.getItem(ZOOM_STORAGE_KEY);
+    if (stored !== null) {
+      const n = parseInt(stored, 10);
+      if (Number.isInteger(n) && n >= ZOOM_MIN && n <= ZOOM_MAX) return n;
+    }
+  } catch {
+    /* ignore */
+  }
+  return 100;
+}
 
 export function DocumentEditorProvider({ children }: { children: ReactNode }) {
   const [document, setDocumentState] = useState<DocumentModel>(getDefaultDocument);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveStatus, setSaveStatusState] = useState<SaveStatus>('idle');
   const [focusedPageIndex, setFocusedPageIndex] = useState(0);
+  const [comments, setComments] = useState<DocumentComment[]>([]);
+  const [zoomLevel, setZoomLevelState] = useState(getStoredZoomLevel);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const savedRangeRef = useRef<Range | null>(null);
+  const scrollToCommentAnchorRef = useRef<((anchor: CommentAnchorScroll) => void) | null>(null);
 
   const saveEditorSelection = useCallback(() => {
     const el = editorRef.current;
@@ -175,6 +217,27 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const registerScrollToCommentAnchor = useCallback((fn: ((anchor: CommentAnchorScroll) => void) | null) => {
+    scrollToCommentAnchorRef.current = fn;
+  }, []);
+
+  const scrollToCommentAnchor = useCallback((anchor: CommentAnchorScroll) => {
+    scrollToCommentAnchorRef.current?.(anchor);
+  }, []);
+
+  const setZoomLevel = useCallback((value: number) => {
+    const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
+    setZoomLevelState(clamped);
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(ZOOM_STORAGE_KEY, String(zoomLevel));
+    } catch {
+      /* ignore */
+    }
+  }, [zoomLevel]);
+
   const value: DocumentEditorContextValue = {
     document,
     hasUnsavedChanges,
@@ -195,6 +258,12 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     restoreEditorSelection,
     focusedPageIndex,
     setFocusedPageIndex,
+    registerScrollToCommentAnchor,
+    scrollToCommentAnchor,
+    comments,
+    setComments,
+    zoomLevel,
+    setZoomLevel,
   };
 
   return (

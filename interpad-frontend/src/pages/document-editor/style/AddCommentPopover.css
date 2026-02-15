@@ -1,0 +1,94 @@
+.add-comment-popover {
+  min-width: 280px;
+  max-width: 360px;
+}
+
+.add-comment-popover-inner {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  padding: 12px;
+}
+
+.add-comment-quote {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  border-left: 3px solid #44b492;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-comment-textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.add-comment-textarea:focus {
+  outline: none;
+  border-color: #44b492;
+  box-shadow: 0 0 0 2px rgba(68, 180, 146, 0.2);
+}
+
+.add-comment-textarea::placeholder {
+  color: #999;
+}
+
+.add-comment-error {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #c00;
+}
+
+.add-comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.add-comment-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.15s ease;
+}
+
+.add-comment-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.add-comment-btn-cancel {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.add-comment-btn-cancel:hover:not(:disabled) {
+  background: #e5e5e5;
+}
+
+.add-comment-btn-submit {
+  background: #44b492;
+  color: #fff;
+}
+
+.add-comment-btn-submit:hover:not(:disabled) {
+  background: #3a9d7d;
+}

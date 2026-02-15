@@ -1,12 +1,34 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import './style/EditorArea.css';
 import { useDocumentEditor } from './context/DocumentEditorContext';
 import { hasPageOverflow } from './utils/measurePageOverflow';
 import { splitContentIntoPages } from './utils/splitPageContent';
 
+/** Anchor për koment: faqja dhe offset-at e tekstit të selektuar (për hapin 3 – Add comment). */
+export interface CommentSelectionAnchor {
+  pageIndex: number;
+  startOffset: number;
+  endOffset: number;
+  selectedText: string;
+}
+
 const DEFAULT_PLACEHOLDER_HTML = '<p>Start typing your document here...</p>';
 const EMPTY_PAGE_HTML = '<p><br></p>';
 const CONTENT_DEBOUNCE_MS = 400;
+const COMMENT_HIGHLIGHT_ATTR = 'data-comment-highlight';
+
+/** Heq span-at e highlight-it nga HTML para se ta ruajmë në state (hapi 6). */
+function stripCommentHighlights(html: string): string {
+  if (typeof window === 'undefined' || !html) return html;
+  const div = window.document.createElement('div');
+  div.innerHTML = html;
+  const spans = div.querySelectorAll(`[${COMMENT_HIGHLIGHT_ATTR}]`);
+  spans.forEach((span) => {
+    const text = window.document.createTextNode(span.textContent ?? '');
+    span.parentNode?.replaceChild(text, span);
+  });
+  return div.innerHTML;
+}
 
 /** Përmbajtja për një faqe bosh: vetëm për faqen e parë kur është e vetmja shfaqet placeholder-i. */
 function getEmptyPageContent(pageIndex: number, totalPages: number): string {
@@ -95,7 +117,28 @@ function setCursorToStart(editable: HTMLElement): void {
   editable.focus();
 }
 
-const EditorArea = () => {
+/** Kontrollon nëse container përmban node (vetë ose brenda). */
+function containerContains(container: Node | null, node: Node): boolean {
+  if (!container) return false;
+  return container === node || container.contains(node);
+}
+
+interface CommentSelectionState {
+  anchor: CommentSelectionAnchor;
+  rect: { top: number; left: number; width: number; height: number };
+}
+
+interface EditorAreaProps {
+  /** Kur përdoruesi klikon "Add comment" në bubble; anchor + rect për pozicionimin e popover-it. */
+  onAddCommentClick?: (
+    anchor: CommentSelectionAnchor,
+    rect: { top: number; left: number; width: number; height: number }
+  ) => void;
+  /** Hapi 7: kur përdoruesi klikon teksti të theksuar (highlight), hap komentin në sidebar. */
+  onCommentHighlightClick?: (commentId: string) => void;
+}
+
+const EditorArea = ({ onAddCommentClick, onCommentHighlightClick }: EditorAreaProps) => {
   const {
     document,
     setContent,
@@ -105,6 +148,9 @@ const EditorArea = () => {
     saveEditorSelection,
     setFocusedPageIndex,
     focusedPageIndex,
+    registerScrollToCommentAnchor,
+    comments,
+    zoomLevel,
   } = useDocumentEditor();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -112,6 +158,10 @@ const EditorArea = () => {
   const focusPageAfterSplitRef = useRef<number | null>(null);
   const documentPagesRef = useRef<string[]>(document.pages);
   documentPagesRef.current = document.pages;
+
+  const [commentSelection, setCommentSelection] = useState<CommentSelectionState | null>(null);
+  const editorWrapperRef = useRef<HTMLDivElement | null>(null);
+  const commentBubbleRef = useRef<HTMLDivElement | null>(null);
 
   // Sync nga state te DOM vetëm kur ndryshon dokumenti (id) – ngarkim doc i ri.
   // Faqe bosh: vetëm faqja 1 (e vetme) merr placeholder-in "Start typing..."; të tjerat marrin <p><br></p>.
@@ -164,6 +214,167 @@ const EditorArea = () => {
     }
   }, [focusedPageIndex, document.pages.length, editorRef]);
 
+  // Hapi 2: ndiq selection-in për "Add comment" – nëse ka tekst të zgjedhur brenda një faqe, shfaq bubble.
+  useEffect(() => {
+    const doc = window.document;
+    const handleSelectionChange = () => {
+      const sel = doc.getSelection();
+      if (!sel || sel.rangeCount === 0) {
+        setCommentSelection(null);
+        return;
+      }
+      const range = sel.getRangeAt(0);
+      if (range.collapsed) {
+        setCommentSelection(null);
+        return;
+      }
+
+      const pages = pageRefs.current;
+      let pageIndex = -1;
+      for (let i = 0; i < pages.length; i++) {
+        const pageEl = pages[i];
+        if (!pageEl) continue;
+        const startIn = containerContains(pageEl, range.startContainer);
+        const endIn = containerContains(pageEl, range.endContainer);
+        if (startIn && endIn) {
+          pageIndex = i;
+          break;
+        }
+      }
+      if (pageIndex < 0) {
+        setCommentSelection(null);
+        return;
+      }
+
+      const container = pages[pageIndex]!;
+      const startOffset = getCharacterOffset(container, range.startContainer, range.startOffset);
+      const endOffset = getCharacterOffset(container, range.endContainer, range.endOffset);
+      const selectedText = range.toString().trim();
+      if (selectedText.length === 0) {
+        setCommentSelection(null);
+        return;
+      }
+
+      const rect = range.getBoundingClientRect();
+      setCommentSelection({
+        anchor: { pageIndex, startOffset, endOffset, selectedText },
+        rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+      });
+    };
+
+    doc.addEventListener('selectionchange', handleSelectionChange);
+    return () => doc.removeEventListener('selectionchange', handleSelectionChange);
+  }, []);
+
+  // Fsheh bubble kur klikohet jashtë editorit; kur klikohet brenda, fsheh nëse nuk ka seleksion të vërtetë.
+  useEffect(() => {
+    const doc = window.document;
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const insideEditor = editorWrapperRef.current?.contains(target);
+      const insideBubble = commentBubbleRef.current?.contains(target);
+      if (insideBubble) return;
+
+      if (!insideEditor) {
+        setCommentSelection(null);
+        return;
+      }
+      // Klik brenda editorit: nëse nuk ka tekst të zgjedhur, fsheh bubble (selectionchange mund të vonojë).
+      const sel = doc.getSelection();
+      if (!sel || sel.rangeCount === 0) {
+        setCommentSelection(null);
+        return;
+      }
+      const range = sel.getRangeAt(0);
+      if (range.collapsed || range.toString().trim().length === 0) {
+        setCommentSelection(null);
+      }
+    };
+    doc.addEventListener('mousedown', handleMouseDown);
+    return () => doc.removeEventListener('mousedown', handleMouseDown);
+  }, []);
+
+  // Hapi 6: vendos highlight (background) mbi tekstin e komentuar.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const doc = window.document;
+      const pages = pageRefs.current;
+    const withAnchor = comments.filter(
+      (c) =>
+        c.anchor != null &&
+        typeof c.anchor.pageIndex === 'number' &&
+        typeof c.anchor.startOffset === 'number' &&
+        typeof c.anchor.endOffset === 'number'
+    );
+    if (withAnchor.length === 0) return;
+
+    // Heq highlight-at e vjetra nga çdo faqe.
+    pages.forEach((container) => {
+      if (!container) return;
+      const spans = container.querySelectorAll(`[${COMMENT_HIGHLIGHT_ATTR}]`);
+      spans.forEach((span) => {
+        const text = doc.createTextNode(span.textContent ?? '');
+        span.parentNode?.replaceChild(text, span);
+      });
+    });
+
+    // Aplikon nga fundi që offset-at e herët të mos ndërrohen.
+    const sorted = [...withAnchor].sort(
+      (a, b) => (b.anchor!.pageIndex! - a.anchor!.pageIndex!) || (b.anchor!.startOffset! - a.anchor!.startOffset!)
+    );
+    sorted.forEach((comment) => {
+      const a = comment.anchor!;
+      const pageIndex = a.pageIndex!;
+      const container = pages[pageIndex];
+      if (!container) return;
+      const maxLen = (container.textContent ?? '').length;
+      const start = Math.min(a.startOffset!, maxLen);
+      const end = Math.min(Math.max(a.endOffset!, start), maxLen);
+      const startPos = setCharacterOffset(container, start);
+      const endPos = setCharacterOffset(container, end);
+      if (!startPos || !endPos) return;
+      const range = doc.createRange();
+      range.setStart(startPos.node, startPos.offset);
+      range.setEnd(endPos.node, endPos.offset);
+      try {
+        const span = doc.createElement('span');
+        span.setAttribute(COMMENT_HIGHLIGHT_ATTR, comment.id);
+        span.className = 'editor-comment-highlight';
+        range.surroundContents(span);
+      } catch {
+        // surroundContents hedh nëse range ndan nyje; anashkalojmë këtë koment.
+      }
+    });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [comments, document.pages.length]);
+
+  // Hapi 4: regjistron scroll te teksti i komentuar (kur klikohet komenti në sidebar).
+  useEffect(() => {
+    registerScrollToCommentAnchor((anchor) => {
+      const container = pageRefs.current[anchor.pageIndex];
+      if (!container) return;
+      const maxLen = (container.textContent ?? '').length;
+      const start = Math.min(anchor.startOffset, maxLen);
+      const end = Math.min(Math.max(anchor.endOffset, start), maxLen);
+      restoreSelection(container, { start, end });
+      setFocusedPageIndex(anchor.pageIndex);
+      container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return () => registerScrollToCommentAnchor(null);
+  }, [registerScrollToCommentAnchor, setFocusedPageIndex]);
+
+  const onCommentBubbleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!commentSelection) return;
+      onAddCommentClick?.(commentSelection.anchor, commentSelection.rect);
+      setCommentSelection(null);
+    },
+    [commentSelection, onAddCommentClick]
+  );
+
   const flushPendingChange = useCallback(() => {
     const pending = pendingChangeRef.current;
     if (pending == null) return;
@@ -171,8 +382,8 @@ const EditorArea = () => {
     const { pageIndex } = pending;
     const el = pageRefs.current[pageIndex];
     if (!el) return;
-    // Përdor përmbajtjen aktuale të DOM (toolbar mund ta ketë ndryshuar pas onInput); mos mbishkruaj me pending të vjetër.
-    const html = el.innerHTML;
+    // Përdor përmbajtjen aktuale të DOM (toolbar mund ta ketë ndryshuar pas onInput); heq highlight-at para ruajtjes (hapi 6).
+    const html = stripCommentHighlights(el.innerHTML);
     const width = el.offsetWidth;
     const pages = documentPagesRef.current;
 
@@ -235,21 +446,63 @@ const EditorArea = () => {
     };
   }, []);
 
-  const onEditorClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    const anchor = target.closest?.('a');
-    if (anchor && anchor.href) {
-      e.preventDefault();
-      e.stopPropagation();
-      window.open(anchor.href, '_blank', 'noopener,noreferrer');
-    }
-  }, []);
+  const onEditorClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      const highlight = target.closest?.(`[${COMMENT_HIGHLIGHT_ATTR}]`);
+      if (highlight instanceof HTMLElement) {
+        const commentId = highlight.getAttribute(COMMENT_HIGHLIGHT_ATTR);
+        if (commentId) onCommentHighlightClick?.(commentId);
+        return;
+      }
+      const anchor = target.closest?.('a');
+      if (anchor && anchor.href) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(anchor.href, '_blank', 'noopener,noreferrer');
+      }
+    },
+    [onCommentHighlightClick]
+  );
 
   const pages = document.pages.length ? document.pages : [DEFAULT_PLACEHOLDER_HTML];
 
   return (
-    <div className="editor-area-wrapper">
-      <div className="editor-area-container">
+    <div className="editor-area-wrapper" ref={editorWrapperRef}>
+      {/* Bubble "Add comment" mbi selection – hapi 2 */}
+      {commentSelection && (
+        <div
+          ref={commentBubbleRef}
+          className="editor-comment-bubble"
+          style={{
+            position: 'fixed',
+            top: commentSelection.rect.top - 44,
+            left: commentSelection.rect.left + commentSelection.rect.width / 2 - 20,
+            zIndex: 1000,
+          }}
+        >
+          <button
+            type="button"
+            className="editor-comment-bubble-btn"
+            onClick={onCommentBubbleClick}
+            onMouseDown={(e) => e.preventDefault()}
+            title="Add comment"
+            aria-label="Add comment"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
+      )}
+      <div
+        className="editor-area-container"
+        style={{
+          zoom: zoomLevel / 100,
+          WebkitZoom: zoomLevel / 100,
+        } as React.CSSProperties}
+      >
         {pages.map((_, pageIndex) => (
           <div key={pageIndex} className="editor-page">
             <div

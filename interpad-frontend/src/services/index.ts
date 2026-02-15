@@ -336,3 +336,124 @@ export async function getRecentDocuments(): Promise<RecentDocumentItem[]> {
   return data.documents ?? [];
 }
 
+// ——— Comments API (kërkon JWT) ———
+
+export interface CommentAnchor {
+  pageIndex?: number;
+  startOffset?: number;
+  endOffset?: number;
+  selectedText?: string;
+}
+
+export interface DocumentCommentAuthor {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface DocumentComment {
+  id: string;
+  documentId: string;
+  author: DocumentCommentAuthor;
+  content: string;
+  anchor: CommentAnchor | null;
+  resolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentCommentsResponse {
+  success: boolean;
+  comments: DocumentComment[];
+  message?: string;
+}
+
+export interface CreateCommentResponse {
+  success: boolean;
+  comment: DocumentComment;
+  message?: string;
+}
+
+/** Merr komentet për një dokument. Kërkon JWT. */
+export async function getDocumentComments(documentId: string): Promise<DocumentComment[]> {
+  const res = await fetch(`${API_BASE_URL}/api/documents/${documentId}/comments`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = (await res.json()) as DocumentCommentsResponse;
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to load comments');
+  }
+
+  return data.comments ?? [];
+}
+
+/** Krijon një koment për dokumentin. Kërkon JWT. */
+export async function createDocumentComment(
+  documentId: string,
+  payload: { content: string; anchor?: CommentAnchor | null }
+): Promise<DocumentComment> {
+  const res = await fetch(`${API_BASE_URL}/api/documents/${documentId}/comments`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await res.json()) as CreateCommentResponse;
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to create comment');
+  }
+
+  if (!data.comment) {
+    throw new Error('Server did not return comment');
+  }
+
+  return data.comment;
+}
+
+/** Përditëson resolved për një koment. Kërkon JWT. */
+export async function resolveDocumentComment(
+  documentId: string,
+  commentId: string,
+  resolved: boolean
+): Promise<DocumentComment> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/documents/${documentId}/comments/${commentId}`,
+    {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ resolved }),
+    }
+  );
+
+  const data = (await res.json()) as { success?: boolean; comment?: DocumentComment; message?: string };
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to update comment');
+  }
+  if (!data.comment) {
+    throw new Error('Server did not return comment');
+  }
+  return data.comment;
+}
+
+/** Fshin një koment. Kërkon JWT. */
+export async function deleteDocumentComment(
+  documentId: string,
+  commentId: string
+): Promise<void> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/documents/${documentId}/comments/${commentId}`,
+    { method: 'DELETE', headers: getAuthHeaders() }
+  );
+
+  const data = (await res.json()) as { success?: boolean; message?: string };
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to delete comment');
+  }
+}
+
