@@ -3,20 +3,11 @@ const Document = require('../models/Document');
 const mongoose = require('mongoose');
 
 /**
- * Kontrollon nëse dokumenti ekziston dhe nëse user-i ka akses (pronari ose sharedWith); kthen dokumentin ose null.
+ * Kontrollon nëse dokumenti ekziston dhe i përket user-it; kthen dokumentin ose null.
  */
-async function getDocumentWithAccess(documentId, userId) {
+async function getDocumentForUser(documentId, userId) {
   if (!documentId || !mongoose.Types.ObjectId.isValid(documentId)) return null;
-  const doc = await Document.findById(documentId).select('userId sharedWith');
-  if (!doc) return null;
-
-  const isOwner = doc.userId && doc.userId.toString() === userId;
-  const isShared =
-    Array.isArray(doc.sharedWith) &&
-    doc.sharedWith.some((id) => id && id.toString() === userId);
-
-  if (!isOwner && !isShared) return null;
-  return doc;
+  return Document.findOne({ _id: documentId, userId });
 }
 
 /**
@@ -51,7 +42,7 @@ async function create(req, res) {
     const userId = req.user.id;
     const { content, anchor } = req.body || {};
 
-    const doc = await getDocumentWithAccess(documentId, userId);
+    const doc = await getDocumentForUser(documentId, userId);
     if (!doc) {
       return res.status(404).json({ success: false, message: 'Document not found' });
     }
@@ -90,7 +81,7 @@ async function getByDocument(req, res) {
     const documentId = req.params.id;
     const userId = req.user.id;
 
-    const doc = await getDocumentWithAccess(documentId, userId);
+    const doc = await getDocumentForUser(documentId, userId);
     if (!doc) {
       return res.status(404).json({ success: false, message: 'Document not found' });
     }
@@ -135,7 +126,7 @@ async function deleteOne(req, res) {
     const commentId = req.params.commentId;
     const userId = req.user.id;
 
-    const doc = await getDocumentWithAccess(documentId, userId);
+    const doc = await getDocumentForUser(documentId, userId);
     if (!doc) {
       return res.status(404).json({ success: false, message: 'Document not found' });
     }
@@ -170,7 +161,7 @@ async function resolveOne(req, res) {
     const userId = req.user.id;
     const resolved = req.body?.resolved === true;
 
-    const doc = await getDocumentWithAccess(documentId, userId);
+    const doc = await getDocumentForUser(documentId, userId);
     if (!doc) {
       return res.status(404).json({ success: false, message: 'Document not found' });
     }
@@ -182,7 +173,7 @@ async function resolveOne(req, res) {
     const comment = await Comment.findOneAndUpdate(
       { _id: commentId, documentId },
       { $set: { resolved } },
-      { returnDocument: 'after' }
+      { new: true }
     )
       .populate('userId', 'name email')
       .lean();

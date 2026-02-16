@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate, useBlocker, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import './style/DocumentEditorStyles.css';
 import './style/DocumentEditorPage.css';
 import './style/DocumentSidebar.css';
@@ -39,9 +39,7 @@ function formatLastSaved(iso?: string | null): string | undefined {
 const DocumentEditorPageInner = () => {
   const { documentId } = useParams<{ documentId?: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { openNewDocument, hasUnsavedChanges, setDocument, saveStatus, document: currentDocument, clearUnsavedChanges } = useDocumentEditor();
-  const { connectionStatus } = useDocumentEditor();
   const lastSavedLabel = formatLastSaved(currentDocument.updatedAt);
   const indicatorStatus =
     saveStatus === 'error' ? 'error' as const
@@ -59,8 +57,6 @@ const DocumentEditorPageInner = () => {
   } | null>(null);
   const [refreshCommentsKey, setRefreshCommentsKey] = useState(0);
   const [focusedCommentId, setFocusedCommentId] = useState<string | null>(null);
-  const shareToken = searchParams.get('token') || undefined;
-  const prevConnectionStatusRef = useRef(connectionStatus);
 
   // Hapi 4: Përmirëso logjikën e useBlocker
   // Kontrollo nëse save-i është duke u procesuar ose sapo u përfundua
@@ -136,7 +132,7 @@ const DocumentEditorPageInner = () => {
     setIsLoadingDocument(true);
     setDocumentLoadError(null);
 
-    getDocument(documentId, shareToken ? { token: shareToken } : undefined)
+    getDocument(documentId)
       .then((doc) => {
         if (cancelled) return;
         setDocument({
@@ -160,54 +156,7 @@ const DocumentEditorPageInner = () => {
     return () => {
       cancelled = true;
     };
-  }, [documentId, shareToken, openNewDocument, setDocument]);
-
-  // Resync dokumentin nga REST kur rikthehet lidhja realtime (p.sh. pas reconnect/server restart).
-  useEffect(() => {
-    const prevStatus = prevConnectionStatusRef.current;
-    prevConnectionStatusRef.current = connectionStatus;
-
-    if (!documentId || documentId === 'new') return;
-
-    const wasPreviouslyDisconnected =
-      prevStatus === 'reconnecting' ||
-      prevStatus === 'disconnected' ||
-      prevStatus === 'error';
-
-    if (!(connectionStatus === 'connected' && wasPreviouslyDisconnected)) {
-      return;
-    }
-
-    let cancelled = false;
-    setIsLoadingDocument(true);
-    setDocumentLoadError(null);
-
-    getDocument(documentId, shareToken ? { token: shareToken } : undefined)
-      .then((doc) => {
-        if (cancelled) return;
-        setDocument({
-          id: doc.id,
-          title: doc.title,
-          pages: contentToPages(doc.content),
-          createdAt: doc.createdAt,
-          updatedAt: doc.updatedAt,
-          version: doc.version,
-        });
-      })
-      .catch((e) => {
-        if (cancelled) return;
-        setDocumentLoadError(
-          e instanceof Error ? e.message : 'Failed to resync document after reconnect'
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingDocument(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [connectionStatus, documentId, shareToken, setDocument]);
+  }, [documentId, openNewDocument, setDocument]);
 
   // Sidebar closed by default on mobile, open on desktop
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
@@ -410,18 +359,7 @@ const DocumentEditorPageInner = () => {
           <AutoSaveIndicator status={indicatorStatus} lastSaved={indicatorLastSaved} />
         </div>
         <div className="indicators-right">
-          <ConnectionStatus
-            status={
-              connectionStatus === 'connected'
-                ? 'connected'
-                : connectionStatus === 'connecting' || connectionStatus === 'reconnecting'
-                ? 'connecting'
-                : connectionStatus === 'error'
-                ? 'error'
-                : 'disconnected'
-            }
-            showText={false}
-          />
+          <ConnectionStatus status="connected" showText={false} />
           <button
             className="fullscreen-toggle-btn"
             onClick={toggleFullscreen}

@@ -1,11 +1,10 @@
 import './style/DocumentEditorHeader.css';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useCallback, useRef, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useRef, useEffect } from 'react';
 import { useDocumentEditor } from './context/DocumentEditorContext';
-import { createDocument, updateDocument, createDocumentShareLink } from '../../services';
+import { createDocument, updateDocument } from '../../services';
 import type { DocumentModel } from './types/document';
 import { getDocumentContent } from './types/document';
-import Modal from './Modal';
 
 const SAVED_RESET_MS = 2000;
 
@@ -15,7 +14,6 @@ interface DocumentEditorHeaderProps {
 
 const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Hapi 3: Flag përkohës që tregon që save-i është përfunduar për dokumentin e ri
   // Kjo përdoret për të siguruar që navigimi bëhet pasi state është përditësuar
@@ -27,15 +25,7 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
     setSaveStatus,
     saveStatus,
     clearUnsavedChanges,
-    activeUsers,
   } = useDocumentEditor();
-
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [shareLink, setShareLink] = useState<string | null>(null);
-  const [shareError, setShareError] = useState<string | null>(null);
-  const [isSharing, setIsSharing] = useState(false);
-  const [hasCopied, setHasCopied] = useState(false);
-  const shareToken = searchParams.get('token') || undefined;
 
   const handleSave = useCallback(async () => {
     setSaveStatus('saving');
@@ -56,11 +46,7 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
 
       const doc = isNew
         ? await createDocument(payload)
-        : await updateDocument(
-            document.id as string,
-            payload,
-            shareToken ? { token: shareToken } : undefined
-          );
+        : await updateDocument(document.id as string, payload);
 
       // Ruaj strukturën e faqesh të editorit; API kthen content të bashkuar, por ne duam të mbajmë pages[]
       const newDoc: DocumentModel = {
@@ -110,43 +96,7 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
       // Nëse ka gabim, reset flag-u
       isSavingNewDocumentRef.current = false;
     }
-  }, [document.id, document.title, document.pages, setDocument, setSaveStatus, clearUnsavedChanges, navigate, shareToken]);
-
-  const handleShare = useCallback(async () => {
-    // Nëse dokumenti nuk është ruajtur ende, kërko fillimisht ruajtje.
-    if (!document.id) {
-      await handleSave();
-      return;
-    }
-
-    setShareError(null);
-    setHasCopied(false);
-    setIsSharing(true);
-
-    try {
-      const share = await createDocumentShareLink(document.id);
-      setShareLink(share.url);
-      setIsShareModalOpen(true);
-
-      // Provo të kopjosh linkun automatikisht në clipboard
-      if (navigator && 'clipboard' in navigator && navigator.clipboard?.writeText) {
-        try {
-          await navigator.clipboard.writeText(share.url);
-          setHasCopied(true);
-        } catch {
-          // Nëse dështoi auto-copy, përdoruesi mund ta kopjojë manualisht
-          setHasCopied(false);
-        }
-      }
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to create share link';
-      setShareError(message);
-      setIsShareModalOpen(true);
-    } finally {
-      setIsSharing(false);
-    }
-  }, [document.id, handleSave]);
+  }, [document.id, document.title, document.pages, setDocument, setSaveStatus, clearUnsavedChanges, navigate]);
 
   useEffect(() => {
     return () => {
@@ -180,47 +130,6 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
 
         {/* Right: Action Buttons & User Profile */}
         <div className="document-editor-header-right">
-          {/* Active collaborators (presence) */}
-          {activeUsers && activeUsers.length > 0 && (
-            <div className="document-editor-collaborators" aria-label="Active collaborators">
-              <div className="document-editor-collaborators-avatars">
-                {activeUsers.slice(0, 3).map((user) => {
-                  const name = user.name || 'Active user';
-                  const initials = name
-                    .split(' ')
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((part) => part[0]?.toUpperCase())
-                    .join('') || 'U';
-
-                  return (
-                    <div
-                      key={user.userId}
-                      className="document-editor-collaborator-avatar"
-                      title={name}
-                    >
-                      <span className="document-editor-collaborator-avatar-initials">
-                        {initials}
-                      </span>
-                    </div>
-                  );
-                })}
-                {activeUsers.length > 3 && (
-                  <div
-                    className="document-editor-collaborator-avatar document-editor-collaborator-avatar-more"
-                    title={`${activeUsers.length - 3} more collaborator(s)`}
-                  >
-                    +{activeUsers.length - 3}
-                  </div>
-                )}
-              </div>
-              <span className="document-editor-collaborators-label">
-                {activeUsers.length === 1
-                  ? '1 person here'
-                  : `${activeUsers.length} people here`}
-              </span>
-            </div>
-          )}
           <div className="document-editor-actions">
             <button
               type="button"
@@ -258,14 +167,7 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
                 </svg>
               )}
             </button>
-            <button
-              type="button"
-              className="document-editor-btn document-editor-btn-share"
-              title={document.id ? 'Share' : 'Save document before sharing'}
-              onClick={handleShare}
-              disabled={isSharing}
-              aria-label="Share this document"
-            >
+            <button className="document-editor-btn document-editor-btn-share" title="Share">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="18" cy="5" r="3"/>
                 <circle cx="6" cy="12" r="3"/>
@@ -284,60 +186,6 @@ const DocumentEditorHeader = ({ onBackToDocs }: DocumentEditorHeaderProps) => {
           </div>
         </div>
       </div>
-
-      <Modal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        title={shareError ? 'Share link error' : 'Share document link'}
-        size="small"
-      >
-        {shareError ? (
-          <p>{shareError}</p>
-        ) : (
-          <div className="document-editor-share-modal-content">
-            <p>
-              Anyone with this link, after logging in, will be able to access this
-              document according to the sharing settings.
-            </p>
-            {shareLink && (
-              <div className="document-editor-share-link-row">
-                <input
-                  type="text"
-                  value={shareLink}
-                  readOnly
-                  className="document-editor-share-link-input"
-                  onFocus={(e) => e.currentTarget.select()}
-                  aria-label="Share link"
-                />
-                <button
-                  type="button"
-                  className="document-editor-share-copy-btn"
-                  onClick={async () => {
-                    if (!shareLink) return;
-                    try {
-                      if (navigator && 'clipboard' in navigator && navigator.clipboard?.writeText) {
-                        await navigator.clipboard.writeText(shareLink);
-                        setHasCopied(true);
-                      } else {
-                        // Fallback: për browser-a pa clipboard API, selekto tekstin
-                      }
-                    } catch {
-                      setHasCopied(false);
-                    }
-                  }}
-                >
-                  {hasCopied ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-            )}
-            <p className="document-editor-share-modal-hint">
-              {hasCopied
-                ? 'Link copied to your clipboard.'
-                : 'If copying fails, you can manually select and copy the link.'}
-            </p>
-          </div>
-        )}
-      </Modal>
     </header>
   );
 };

@@ -233,20 +233,6 @@ export interface DocumentUpdateResponse {
   message?: string;
 }
 
-export interface DocumentShareInfo {
-  documentId: string;
-  token: string;
-  role: string;
-  expiresAt?: string | null;
-  url: string;
-}
-
-export interface DocumentShareResponse {
-  success: boolean;
-  share: DocumentShareInfo;
-  message?: string;
-}
-
 /** Krijon dokument të ri. Kërkon JWT. */
 export async function createDocument(payload: {
   title: string;
@@ -277,17 +263,9 @@ export interface DocumentGetOneResponse {
   message?: string;
 }
 
-export interface DocumentRequestOptions {
-  token?: string;
-}
-
-/** Merr një dokument me id. Kërkon JWT. Opsionale: token share link-u në query. */
-export async function getDocument(
-  documentId: string,
-  options?: DocumentRequestOptions
-): Promise<DocumentApiDoc> {
-  const query = options?.token ? `?token=${encodeURIComponent(options.token)}` : '';
-  const res = await fetch(`${API_BASE_URL}/api/documents/${documentId}${query}`, {
+/** Merr një dokument me id. Kërkon JWT. */
+export async function getDocument(documentId: string): Promise<DocumentApiDoc> {
+  const res = await fetch(`${API_BASE_URL}/api/documents/${documentId}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -305,14 +283,12 @@ export async function getDocument(
   return data.document;
 }
 
-/** Përditëson dokument ekzistues. Kërkon JWT. Opsionale: token share link-u në query. */
+/** Përditëson dokument ekzistues. Kërkon JWT. */
 export async function updateDocument(
   documentId: string,
-  payload: { title: string; content: string },
-  options?: DocumentRequestOptions
+  payload: { title: string; content: string }
 ): Promise<DocumentApiDoc> {
-  const query = options?.token ? `?token=${encodeURIComponent(options.token)}` : '';
-  const res = await fetch(`${API_BASE_URL}/api/documents/${documentId}${query}`, {
+  const res = await fetch(`${API_BASE_URL}/api/documents/${documentId}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -329,28 +305,6 @@ export async function updateDocument(
   }
 
   return data.document;
-}
-
-/** Krijon ose kthen një share link për dokumentin. Kërkon JWT dhe që user-i të jetë pronar i dokumentit. */
-export async function createDocumentShareLink(
-  documentId: string
-): Promise<DocumentShareInfo> {
-  const res = await fetch(`${API_BASE_URL}/api/documents/${documentId}/share`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-  });
-
-  const data = (await res.json()) as DocumentShareResponse;
-
-  if (!res.ok) {
-    throw new Error(data.message || 'Failed to create share link');
-  }
-
-  if (!data.share || !data.share.url) {
-    throw new Error('Server did not return share link');
-  }
-
-  return data.share;
 }
 
 export interface RecentDocumentItem {

@@ -18,8 +18,6 @@ const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const redirectParam = searchParams.get('redirect');
-
   // Kontrollo nëse ka error në URL (p.sh. nga Google callback)
   useEffect(() => {
     const urlError = searchParams.get('error');
@@ -61,11 +59,7 @@ const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
         onAuthenticated();
       }
 
-      const redirectTarget =
-        redirectParam && redirectParam.startsWith('/')
-          ? decodeURIComponent(redirectParam)
-          : '/docs';
-      navigate(redirectTarget);
+      navigate('/docs');
     } catch (err: any) {
       setError(err.message || 'An error occurred during login.');
     } finally {

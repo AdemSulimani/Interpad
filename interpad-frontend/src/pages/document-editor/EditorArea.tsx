@@ -3,8 +3,6 @@ import './style/EditorArea.css';
 import { useDocumentEditor } from './context/DocumentEditorContext';
 import { hasPageOverflow } from './utils/measurePageOverflow';
 import { splitContentIntoPages } from './utils/splitPageContent';
-import { PAGE_DELIMITER, sanitizeEditorHtml } from './types/document';
-import type { RealtimeOperation } from '../../realtime/protocol';
 
 /** Anchor për koment: faqja dhe offset-at e tekstit të selektuar (për hapin 3 – Add comment). */
 export interface CommentSelectionAnchor {
@@ -125,71 +123,6 @@ function containerContains(container: Node | null, node: Node): boolean {
   return container === node || container.contains(node);
 }
 
-/** Konverton offset-in lokal të faqes në offset global në fullText (pages.join(PAGE_DELIMITER)). */
-function pageLocalOffsetToGlobal(pages: string[], pageIndex: number, localOffset: number): number {
-  const safeIndex = Math.max(0, Math.min(pageIndex, pages.length - 1));
-  const clampedLocal = Math.max(0, localOffset);
-  let global = clampedLocal;
-  for (let i = 0; i < safeIndex; i += 1) {
-    global += (pages[i] ?? '').length + PAGE_DELIMITER.length;
-  }
-  return global;
-}
-
-/** Gjen faqen dhe offset-in lokal për një offset global në fullText. */
-function globalOffsetToPageLocal(
-  pages: string[],
-  globalOffset: number
-): { pageIndex: number; offset: number } {
-  if (pages.length === 0) {
-    return { pageIndex: 0, offset: 0 };
-  }
-  let remaining = Math.max(0, globalOffset);
-  for (let i = 0; i < pages.length; i += 1) {
-    const pageLen = (pages[i] ?? '').length;
-    if (remaining <= pageLen) {
-      return { pageIndex: i, offset: remaining };
-    }
-    remaining -= pageLen;
-    if (remaining <= PAGE_DELIMITER.length) {
-      // Cursor brenda delimiter-it – e zhvendosim në fillim të faqes tjetër.
-      return { pageIndex: Math.min(i + 1, pages.length - 1), offset: 0 };
-    }
-    remaining -= PAGE_DELIMITER.length;
-  }
-  // Nëse offset-i është përtej fund-it, kthe fundin e faqes së fundit.
-  const lastIndex = pages.length - 1;
-  return { pageIndex: lastIndex, offset: (pages[lastIndex] ?? '').length };
-}
-
-/** Rregullon një offset global sipas një liste operations (insert/delete). */
-function adjustGlobalOffsetByOps(offset: number, ops: RealtimeOperation[]): number {
-  let result = Math.max(0, offset);
-  for (const op of ops) {
-    const pos = Math.max(0, op.pos);
-    if (op.type === 'insert') {
-      const len = op.text?.length ?? 0;
-      if (len > 0 && pos <= result) {
-        result += len;
-      }
-    } else if (op.type === 'delete') {
-      const length = Math.max(0, op.length ?? 0);
-      if (length === 0) continue;
-      // Nëse delete është para cursorit, e zhvendosim majtas.
-      if (pos < result) {
-        const end = pos + length;
-        if (result <= end) {
-          // Cursor brenda range-it të fshirë – e çojmë në fillim të fshirjes.
-          result = pos;
-        } else {
-          result -= length;
-        }
-      }
-    }
-  }
-  return Math.max(0, result);
-}
-
 interface CommentSelectionState {
   anchor: CommentSelectionAnchor;
   rect: { top: number; left: number; width: number; height: number };
@@ -218,9 +151,6 @@ const EditorArea = ({ onAddCommentClick, onCommentHighlightClick }: EditorAreaPr
     registerScrollToCommentAnchor,
     comments,
     zoomLevel,
-    fullTextVersion,
-    lastAppliedOps,
-    clearLastAppliedOps,
   } = useDocumentEditor();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -233,80 +163,21 @@ const EditorArea = ({ onAddCommentClick, onCommentHighlightClick }: EditorAreaPr
   const editorWrapperRef = useRef<HTMLDivElement | null>(null);
   const commentBubbleRef = useRef<HTMLDivElement | null>(null);
 
-  // Sync nga state/OT te DOM kur ndryshon dokumenti (id) ose versioni i konfirmuar nga serveri.
+  // Sync nga state te DOM vetëm kur ndryshon dokumenti (id) – ngarkim doc i ri.
   // Faqe bosh: vetëm faqja 1 (e vetme) merr placeholder-in "Start typing..."; të tjerat marrin <p><br></p>.
   useEffect(() => {
     const pages = document.pages;
-    const appliedOps = lastAppliedOps && lastAppliedOps.length > 0 ? lastAppliedOps : null;
-
-    // Nëse kemi një batch operations remote, kapim pozicionin aktual të cursor-it si offset global.
-    let previousGlobalCaret: number | null = null;
-    if (appliedOps) {
-      const sel = window.document.getSelection();
-      if (sel && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
-        if (!range.collapsed) {
-          // Përdor fundin e selection-it si caret logjik.
-          const endNode = range.endContainer;
-          const endOffset = range.endOffset;
-          for (let i = 0; i < pageRefs.current.length; i += 1) {
-            const pageEl = pageRefs.current[i];
-            if (!pageEl) continue;
-            if (containerContains(pageEl, endNode)) {
-              const local = getCharacterOffset(pageEl, endNode, endOffset);
-              previousGlobalCaret = pageLocalOffsetToGlobal(pages, i, local);
-              break;
-            }
-          }
-        } else {
-          const node = range.startContainer;
-          const offset = range.startOffset;
-          for (let i = 0; i < pageRefs.current.length; i += 1) {
-            const pageEl = pageRefs.current[i];
-            if (!pageEl) continue;
-            if (containerContains(pageEl, node)) {
-              const local = getCharacterOffset(pageEl, node, offset);
-              previousGlobalCaret = pageLocalOffsetToGlobal(pages, i, local);
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    // Përditëso DOM-in për çdo faqe sipas pages nga state.
     for (let j = 0; j < pages.length; j++) {
       const el = pageRefs.current[j];
       if (!el) continue;
       const raw = pages[j]?.trim() || '';
       const contentFromState = raw || getEmptyPageContent(j, pages.length);
       if (contentFromState === el.innerHTML) continue;
-
-      if (!appliedOps) {
-        // Rasti bazik (jo realtime): ruaj dhe rikthe selection-in lokal si më parë.
-        const saved = saveSelection(el);
-        el.innerHTML = contentFromState;
-        if (saved !== null) restoreSelection(el, saved);
-      } else {
-        // Kur kemi ops remote, thjesht përditëso HTML; selection-i do të ri-vendoset më poshtë
-        // duke përdorur offset-in global të rregulluar.
-        el.innerHTML = contentFromState;
-      }
+      const saved = saveSelection(el);
+      el.innerHTML = contentFromState;
+      if (saved !== null) restoreSelection(el, saved);
     }
-
-    // Nëse kemi caret global nga gjendja e vjetër dhe një batch ops, rregulloje dhe ri-vendose.
-    if (appliedOps && previousGlobalCaret != null) {
-      const adjustedGlobal = adjustGlobalOffsetByOps(previousGlobalCaret, appliedOps);
-      const { pageIndex, offset } = globalOffsetToPageLocal(pages, adjustedGlobal);
-      const targetEl = pageRefs.current[pageIndex];
-      if (targetEl) {
-        restoreSelection(targetEl, { start: offset, end: offset });
-        setFocusedPageIndex(pageIndex);
-      }
-      // Ops-at janë konsumuar për rregullimin e cursorit – mos i ripërdor.
-      clearLastAppliedOps();
-    }
-  }, [document.id, document.pages, fullTextVersion, lastAppliedOps, setFocusedPageIndex, clearLastAppliedOps]);
+  }, [document.id]);
 
   // Pas split, fokuson faqen e re (pageIndex + 1) dhe vendos kursorin në fillim (Hapi 8 opsional).
   useEffect(() => {
@@ -512,7 +383,7 @@ const EditorArea = ({ onAddCommentClick, onCommentHighlightClick }: EditorAreaPr
     const el = pageRefs.current[pageIndex];
     if (!el) return;
     // Përdor përmbajtjen aktuale të DOM (toolbar mund ta ketë ndryshuar pas onInput); heq highlight-at para ruajtjes (hapi 6).
-    const html = sanitizeEditorHtml(stripCommentHighlights(el.innerHTML));
+    const html = stripCommentHighlights(el.innerHTML);
     const width = el.offsetWidth;
     const pages = documentPagesRef.current;
 
