@@ -1,12 +1,34 @@
 import './App.css';
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import LandingPage from './pages/landing-page/LandingPage';
 import { Login, Register, ForgotPassword, VerificationCode, ResetPassword, GoogleCallback, LinkGoogleAccount } from './pages/auth';
 import { DocumentEditorPage } from './pages/document-editor';
 import { DocsHomePage } from './pages/docs-home';
+
+function RequireAuth({
+  isAuthenticated,
+  children,
+}: {
+  isAuthenticated: boolean;
+  children: JSX.Element;
+}) {
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    const redirectTo = `${location.pathname}${location.search}`;
+    return (
+      <Navigate
+        to={`/login?redirect=${encodeURIComponent(redirectTo)}`}
+        replace
+      />
+    );
+  }
+
+  return children;
+}
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -115,19 +137,25 @@ function App() {
       <Route
         path="/docs"
         element={
-          isAuthenticated ? <DocsHomePage /> : <Navigate to="/login" replace />
+          <RequireAuth isAuthenticated={isAuthenticated}>
+            <DocsHomePage />
+          </RequireAuth>
         }
       />
       <Route
         path="/editor"
         element={
-          isAuthenticated ? <DocumentEditorPage /> : <Navigate to="/login" replace />
+          <RequireAuth isAuthenticated={isAuthenticated}>
+            <DocumentEditorPage />
+          </RequireAuth>
         }
       />
       <Route
         path="/editor/:documentId"
         element={
-          isAuthenticated ? <DocumentEditorPage /> : <Navigate to="/login" replace />
+          <RequireAuth isAuthenticated={isAuthenticated}>
+            <DocumentEditorPage />
+          </RequireAuth>
         }
       />
     </Routes>
