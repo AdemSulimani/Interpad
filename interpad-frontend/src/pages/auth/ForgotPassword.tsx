@@ -35,6 +35,9 @@ const ForgotPassword = () => {
           <p className="forgot-password-description">
             Enter your email and we'll send instructions on how to reset your password.
           </p>
+          <p className="forgot-password-spam-hint">
+            If you don't see the email, check your spam folder.
+          </p>
 
           <form onSubmit={handleSubmit} className="auth-form">
             {error && (
@@ -45,7 +48,7 @@ const ForgotPassword = () => {
             
             {success && (
               <div className="success-message" style={{ color: 'green', marginBottom: '1rem' }}>
-                Password reset instructions have been sent to your email.
+                Password reset instructions have been sent to your email. If you don't see it, check your spam folder.
               </div>
             )}
 
