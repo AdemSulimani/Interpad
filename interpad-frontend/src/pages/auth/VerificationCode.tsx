@@ -113,7 +113,7 @@ const VerificationCode = ({ onVerified }: VerificationCodeProps) => {
 
     try {
       await resendVerificationCode({ email: pendingEmail });
-      setError('A new verification code has been sent to your email.');
+      setError('A new verification code has been sent to your email. Check your spam folder if you don\'t see it.');
     } catch (err: any) {
       setError(err.message || 'Failed to resend verification code.');
     }
@@ -127,6 +127,9 @@ const VerificationCode = ({ onVerified }: VerificationCodeProps) => {
           
           <p className="verification-description">
             Enter the code that was sent to your email
+          </p>
+          <p className="verification-spam-hint">
+            If you don't see it, check your spam folder.
           </p>
 
           <form onSubmit={handleSubmit} className="auth-form">
