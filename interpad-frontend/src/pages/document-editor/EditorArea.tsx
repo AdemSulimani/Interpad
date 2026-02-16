@@ -512,10 +512,8 @@ const EditorArea = ({ onAddCommentClick, onCommentHighlightClick }: EditorAreaPr
                 if (!node && pageIndex === focusedPageIndex && editorRef) editorRef.current = null;
                 // Vetëm faqja e fokusuar e vendos editorRef (jo gjithmonë faqja 0), që toolbar të aplikohet në faqen e duhur.
                 if (node && pageIndex === focusedPageIndex && editorRef) editorRef.current = node;
-                if (node && pageIndex > 0) {
-                  const content = document.pages[pageIndex];
-                  if (content != null && content !== node.innerHTML) node.innerHTML = content;
-                }
+                // Mos sinkronizo përmbajtjen këtu - kjo bëhet nga useEffect për të shmangur konfliktet me ndryshimet e përdoruesit.
+                // Ref callback duhet vetëm të menaxhojë referencat, jo përmbajtjen.
               }}
               className="editor-area"
               contentEditable={true}

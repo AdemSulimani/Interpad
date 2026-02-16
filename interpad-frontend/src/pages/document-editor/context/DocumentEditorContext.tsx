@@ -103,6 +103,179 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const savedRangeRef = useRef<Range | null>(null);
   const scrollToCommentAnchorRef = useRef<((anchor: CommentAnchorScroll) => void) | null>(null);
+  // pendingOpsRef: lista e operations të nisura nga ky klient por ende jo të konfirmuara nga serveri.
+  const pendingOpsRef = useRef<RealtimeOperation[]>([]);
+  // Mbajmë një ref për serverText që të kemi gjithmonë vlerën aktuale brenda callbacks.
+  const serverTextRef = useRef<string>(serverText);
+  const serverVersionRef = useRef<number>(serverVersion);
+  // Mbajmë një ref për fullText që të kemi gjithmonë vlerën aktuale brenda callbacks.
+  const fullTextRef = useRef<string>(fullText);
+  // Lista e fundit e ops të aplikuara nga serveri (remote-only) – përdoret nga editori për të rregulluar cursorin.
+  const [lastAppliedOps, setLastAppliedOps] = useState<RealtimeOperation[] | null>(null);
+  // Flamur për të treguar kur po aplikojmë ops remote në fullText – përdoret për të shmangur
+  // split-in automatik të faqeve nga fullText gjatë këtyre përditësimeve, që ndryshe mund të
+  // shkaktonte duplikime faqesh në kombinim me logjikën lokale të split-it.
+  const isApplyingRemoteOpsRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    serverTextRef.current = serverText;
+  }, [serverText]);
+
+  useEffect(() => {
+    serverVersionRef.current = serverVersion;
+  }, [serverVersion]);
+
+  useEffect(() => {
+    fullTextRef.current = fullText;
+  }, [fullText]);
+
+  const { connectionStatus, initialState, activeUsers, sendOps } = useDocumentRealtime({
+    documentId: document.id,
+    enabled: document.id != null,
+    onOpsCommitted: (payload) => {
+      if (!payload || payload.documentId !== document.id) return;
+      if (!payload.opsApplied || payload.opsApplied.length === 0) {
+        // Asnjë op i ri – thjesht përditëso version-in serveror që njohim.
+        setServerVersion(payload.newVersion);
+        setFullTextVersion(payload.newVersion);
+        setLastAppliedOps(null);
+        return;
+      }
+      // 1) Apliko opsApplied mbi serverText-in aktual për të marrë tekstin e ri të konfirmuar.
+      const prevServerText = serverTextRef.current;
+      const nextServerText = applyOpsToText(prevServerText, payload.opsApplied);
+      serverTextRef.current = nextServerText;
+      setServerText(nextServerText);
+
+      // 2) Hiq nga pendingOps çdo op që u konfirmua nga serveri (id përputhet) dhe
+      // detekto nëse batch-i përmban vetëm ops remote (asnjeri nuk ishte në pendingOpsRef).
+      const committedIds = new Set(payload.opsApplied.map((op) => op.id));
+      const hadLocalCommittedOps = pendingOpsRef.current.some((op) =>
+        committedIds.has(op.id)
+      );
+      const remainingPending = pendingOpsRef.current.filter((op) => !committedIds.has(op.id));
+      pendingOpsRef.current = remainingPending;
+
+      // 3) Përditëso version-in serveror të njohur dhe pasqyroje tek fullTextVersion.
+      setServerVersion(payload.newVersion);
+      setFullTextVersion(payload.newVersion);
+
+      // 4) Nëse batch-i përmban ops lokale të këtij klienti, i konsiderojmë tashmë
+      // të aplikuara në fullText (përmes diff‑it lokal) dhe nuk e rishkruajmë fullText.
+      // Vetëm sinkronizojmë serverText/version dhe pastrojmë pendingOps.
+      if (hadLocalCommittedOps) {
+        setLastAppliedOps(null);
+        return;
+      }
+
+      // 5) Nëse batch-i ishte vetëm remote (asnjeri nga pendingOps), rindërto
+      // gjendjen lokale (fullText) duke aplikuar pendingOps mbi serverText-in e ri
+      // dhe ekspozo ops për editorin që të rregullojë cursorin.
+      isApplyingRemoteOpsRef.current = true;
+      const rebuiltLocalText = applyOpsToText(nextServerText, remainingPending);
+      setFullText(rebuiltLocalText);
+      // Pastro flamurin pas përditësimit të fullText për të lejuar split-in automatik të faqeve
+      // përsëri pasi që ops-at remote janë aplikuar.
+      setTimeout(() => {
+        isApplyingRemoteOpsRef.current = false;
+      }, 0);
+
+      if (payload.opsApplied.length > 0) {
+        setLastAppliedOps(payload.opsApplied);
+      } else {
+        setLastAppliedOps(null);
+      }
+    },
+  });
+
+  /** Gjeneron një id të thjeshtë, deterministic mjaftueshëm për ops lokale. */
+  const generateOpId = () => {
+    if (typeof window !== 'undefined' && 'crypto' in window && window.crypto?.randomUUID) {
+      return window.crypto.randomUUID();
+    }
+    return `op_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  };
+
+  /** Heuristikë e thjeshtë diff: kthen listën e ops insert/delete për ndryshimin mes teksteve. */
+  const buildOpsForTextChange = useCallback(
+    (previous: string, next: string): RealtimeOperation[] => {
+      if (previous === next || document.id == null) return [];
+
+      const prev = previous ?? '';
+      const curr = next ?? '';
+
+      let start = 0;
+      const maxStart = Math.min(prev.length, curr.length);
+      while (start < maxStart && prev[start] === curr[start]) {
+        start += 1;
+      }
+
+      let endPrev = prev.length - 1;
+      let endCurr = curr.length - 1;
+      while (endPrev >= start && endCurr >= start && prev[endPrev] === curr[endCurr]) {
+        endPrev -= 1;
+        endCurr -= 1;
+      }
+
+      const removedLength = endPrev >= start ? endPrev - start + 1 : 0;
+      const insertedText =
+        endCurr >= start ? curr.slice(start, endCurr + 1) : '';
+
+      const ops: RealtimeOperation[] = [];
+      // Çdo op i ri bazohet në version-in e fundit të konfirmuar nga serveri.
+      const baseVersion = serverVersionRef.current;
+      const userId = ''; // Do të zëvendësohet me userId real nga auth në hapa të tjerë.
+
+      if (removedLength > 0) {
+        ops.push({
+          id: generateOpId(),
+          userId,
+          baseVersion,
+          type: 'delete',
+          pos: start,
+          length: removedLength,
+        });
+      }
+
+      if (insertedText.length > 0) {
+        ops.push({
+          id: generateOpId(),
+          userId,
+          baseVersion,
+          type: 'insert',
+          pos: start,
+          text: insertedText,
+        });
+      }
+
+      return ops;
+    },
+    [document.id]
+  );
+
+  /**
+   * Përditëson fullText nga pages dhe dërgon ops tek realtime serveri
+   * nëse ka ndryshim real mes tekstit të vjetër dhe atij të ri.
+   */
+  const syncFullTextAndSendOps = useCallback(
+    (previousPages: string[], nextPages: string[]) => {
+      const previousText = serializePagesToText(previousPages);
+      const nextText = serializePagesToText(nextPages);
+      if (previousText === nextText) {
+        setFullText(nextText);
+        return;
+      }
+
+      const ops = buildOpsForTextChange(previousText, nextText);
+      if (ops.length > 0) {
+        pendingOpsRef.current = [...pendingOpsRef.current, ...ops];
+        sendOps(ops);
+      }
+
+      setFullText(nextText);
+    },
+    [buildOpsForTextChange, sendOps]
+  );
 
   const saveEditorSelection = useCallback(() => {
     const el = editorRef.current;
