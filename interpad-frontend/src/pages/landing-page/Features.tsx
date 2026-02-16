@@ -22,7 +22,7 @@ const Features = () => {
           
           <div className="features-preview">
             <img 
-              src="/foto1.png" 
+              src="/addfunctionalities.PNG" 
               alt="Interpad Editor with Plugins" 
               className="features-image"
             />

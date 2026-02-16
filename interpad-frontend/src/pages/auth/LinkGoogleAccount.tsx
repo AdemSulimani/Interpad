@@ -38,9 +38,10 @@ const LinkGoogleAccount = ({ onAuthenticated }: LinkGoogleAccountProps) => {
       const response = await linkGoogleAccount({ email, password });
 
       if (response.success && response.token) {
-        // Ruaj token-in
+        // Hapi 7 – Pas lidhjes së Google: ruaj në localStorage (si remember me), pastro sessionStorage
+        sessionStorage.removeItem('token');
         localStorage.setItem('token', response.token);
-        
+
         // Ruaj user data në localStorage
         if (response.user) {
           localStorage.setItem('user', JSON.stringify(response.user));

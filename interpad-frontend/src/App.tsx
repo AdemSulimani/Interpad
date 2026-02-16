@@ -7,67 +7,91 @@ import LandingPage from './pages/landing-page/LandingPage';
 import { Login, Register, ForgotPassword, VerificationCode, ResetPassword, GoogleCallback, LinkGoogleAccount } from './pages/auth';
 import { DocumentEditorPage } from './pages/document-editor';
 import { DocsHomePage } from './pages/docs-home';
+import { validateAuthToken } from './services';
+
+type AuthStatus = 'pending' | 'authenticated' | 'unauthenticated';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('pending');
   const [needsVerification, setNeedsVerification] = useState(false);
   const [pendingUserEmail, setPendingUserEmail] = useState<string | null>(null);
 
-  // Inicializo gjendjen nga storage kur hapet aplikacioni
+  // Hapi 1 + 3 – Në ngarkim: nëse ka token, verifikoje me backend; nëse jo, kontrollo pending verification
   useEffect(() => {
     const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
 
-    if (storedToken) {
-      setIsAuthenticated(true);
-      setNeedsVerification(false);
-      setPendingUserEmail(null);
+    if (!storedToken) {
+      setAuthStatus('unauthenticated');
+      const storedPendingEmail = localStorage.getItem('pendingEmail');
+      if (storedPendingEmail) {
+        setNeedsVerification(true);
+        setPendingUserEmail(storedPendingEmail);
+      }
       return;
     }
 
-    const storedPendingEmail = localStorage.getItem('pendingEmail');
-    if (storedPendingEmail) {
-      setPendingUserEmail(storedPendingEmail);
-      setNeedsVerification(true);
-    }
+    // Hapi 3 – Verifikim i token-it me backend (skaduar/invalid → pastro storage dhe dil nga auth)
+    validateAuthToken()
+      .then((valid) => {
+        setAuthStatus(valid ? 'authenticated' : 'unauthenticated');
+        if (valid) {
+          setNeedsVerification(false);
+          setPendingUserEmail(null);
+        }
+      })
+      .catch(() => {
+        setAuthStatus('unauthenticated');
+      });
   }, []);
+
+  const isAuthenticated = authStatus === 'authenticated';
 
   return (
     <Routes>
+      {/* Hapi 5 – Përdoruesi i autentikuar që hap / ridrejtohet automatikisht te /docs */}
       <Route
         path="/"
         element={
-          <>
-            <Header />
-            <LandingPage />
-            <Footer />
-          </>
+          isAuthenticated ? (
+            <Navigate to="/docs" replace />
+          ) : (
+            <>
+              <Header />
+              <LandingPage />
+              <Footer />
+            </>
+          )
         }
       />
       <Route
         path="/login"
         element={
-          <Login
-            onRequireVerification={(email, userId) => {
-              setNeedsVerification(true);
-              setIsAuthenticated(false);
-              setPendingUserEmail(email);
+          authStatus === 'pending' ? (
+            <div className="app-auth-loading">Loading...</div>
+          ) : (
+            <Login
+              onRequireVerification={(email, userId) => {
+                setNeedsVerification(true);
+                setAuthStatus('unauthenticated');
+                setPendingUserEmail(email);
 
-              // Ruaj në storage që verifikimi është në pritje
-              localStorage.setItem('pendingEmail', email);
-              if (userId) {
-                localStorage.setItem('pendingUserId', userId);
-              }
-            }}
-            onAuthenticated={() => {
-              setIsAuthenticated(true);
-              setNeedsVerification(false);
-              setPendingUserEmail(null);
+                // Ruaj në storage që verifikimi është në pritje
+                localStorage.setItem('pendingEmail', email);
+                if (userId) {
+                  localStorage.setItem('pendingUserId', userId);
+                }
+              }}
+              onAuthenticated={() => {
+                setAuthStatus('authenticated');
+                setNeedsVerification(false);
+                setPendingUserEmail(null);
 
-              // Pas autentikimit të suksesshëm, pastro pending data
-              localStorage.removeItem('pendingEmail');
-              localStorage.removeItem('pendingUserId');
-            }}
-          />
+                // Pas autentikimit të suksesshëm, pastro pending data
+                localStorage.removeItem('pendingEmail');
+                localStorage.removeItem('pendingUserId');
+              }}
+            />
+          )
         }
       />
       <Route path="/register" element={<Register />} />
@@ -76,58 +100,88 @@ function App() {
       <Route
         path="/auth/google/callback"
         element={
-          <GoogleCallback
-            onAuthenticated={() => {
-              setIsAuthenticated(true);
-              setNeedsVerification(false);
-              setPendingUserEmail(null);
-            }}
-          />
+          authStatus === 'pending' ? (
+            <div className="app-auth-loading">Loading...</div>
+          ) : (
+            <GoogleCallback
+              onAuthenticated={() => {
+                setAuthStatus('authenticated');
+                setNeedsVerification(false);
+                setPendingUserEmail(null);
+              }}
+            />
+          )
         }
       />
       <Route
         path="/auth/google/link-account"
         element={
-          <LinkGoogleAccount
-            onAuthenticated={() => {
-              setIsAuthenticated(true);
-              setNeedsVerification(false);
-              setPendingUserEmail(null);
-            }}
-          />
+          authStatus === 'pending' ? (
+            <div className="app-auth-loading">Loading...</div>
+          ) : (
+            <LinkGoogleAccount
+              onAuthenticated={() => {
+                setAuthStatus('authenticated');
+                setNeedsVerification(false);
+                setPendingUserEmail(null);
+              }}
+            />
+          )
         }
       />
       <Route
         path="/verification-code"
         element={
-          <VerificationCode
-            onVerified={() => {
-              setIsAuthenticated(true);
-              setNeedsVerification(false);
-              setPendingUserEmail(null);
+          authStatus === 'pending' ? (
+            <div className="app-auth-loading">Loading...</div>
+          ) : (
+            <VerificationCode
+              onVerified={() => {
+                setAuthStatus('authenticated');
+                setNeedsVerification(false);
+                setPendingUserEmail(null);
 
-              localStorage.removeItem('pendingEmail');
-              localStorage.removeItem('pendingUserId');
-            }}
-          />
+                localStorage.removeItem('pendingEmail');
+                localStorage.removeItem('pendingUserId');
+              }}
+            />
+          )
         }
       />
       <Route
         path="/docs"
         element={
-          isAuthenticated ? <DocsHomePage /> : <Navigate to="/login" replace />
+          authStatus === 'pending' ? (
+            <div className="app-auth-loading">Loading...</div>
+          ) : isAuthenticated ? (
+            <DocsHomePage />
+          ) : (
+            <Navigate to="/login" replace />
+          )
         }
       />
       <Route
         path="/editor"
         element={
-          isAuthenticated ? <DocumentEditorPage /> : <Navigate to="/login" replace />
+          authStatus === 'pending' ? (
+            <div className="app-auth-loading">Loading...</div>
+          ) : isAuthenticated ? (
+            <DocumentEditorPage />
+          ) : (
+            <Navigate to="/login" replace />
+          )
         }
       />
       <Route
         path="/editor/:documentId"
         element={
-          isAuthenticated ? <DocumentEditorPage /> : <Navigate to="/login" replace />
+          authStatus === 'pending' ? (
+            <div className="app-auth-loading">Loading...</div>
+          ) : isAuthenticated ? (
+            <DocumentEditorPage />
+          ) : (
+            <Navigate to="/login" replace />
+          )
         }
       />
     </Routes>

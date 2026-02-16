@@ -4,13 +4,16 @@ const router = express.Router();
 const passport = require('passport');
 
 const authController = require('../controllers/authController');
-const { loginRateLimiter, verifyCodeRateLimiter } = require('../middleware/authMiddleware');
+const { loginRateLimiter, verifyCodeRateLimiter, verifyJWT } = require('../middleware/authMiddleware');
 
 // REGISTER
 router.post('/register', authController.register);
 
 // LOGIN (me rate limiting)
 router.post('/login', loginRateLimiter, authController.login);
+
+// ME – Hapi 3: validim i token-it (JWT i detyrueshëm)
+router.get('/me', verifyJWT, authController.me);
 
 // VERIFY CODE pas login-it (me rate limiting për tentativat e kodit)
 router.post('/verify-code', verifyCodeRateLimiter, authController.verifyCode);

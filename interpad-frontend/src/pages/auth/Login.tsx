@@ -18,6 +18,14 @@ const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // Hapi 2 – Nëse ka tashmë token (remember me), ridrejto automatikisht te /docs
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (storedToken) {
+      navigate('/docs', { replace: true });
+    }
+  }, [navigate]);
+
   // Kontrollo nëse ka error në URL (p.sh. nga Google callback)
   useEffect(() => {
     const urlError = searchParams.get('error');
@@ -39,6 +47,8 @@ const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
 
       // Nëse backend kërkon verifikim me kod (2FA step)
       if (response.requiresVerification) {
+        // Hapi 4 – Ruaj rememberMe për verifyCode (kohëzgjatje JWT + ku të ruhet token-i)
+        localStorage.setItem('pendingRememberMe', rememberMe ? '1' : '0');
         // Lajmëro App-in që ky user ka nevojë për verifikim
         onRequireVerification(email, response.userId);
 
@@ -47,11 +57,15 @@ const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
         return;
       }
 
-      // Nëse nuk kërkohet verifikim – ruaj token-in dhe shko te editori
+      // Hapi 1 – Remember me: ruaj token-in në storage të duhur
+      // Me "remember me" → localStorage (mbetet edhe pas mbylljes së browser-it)
+      // Pa "remember me" → sessionStorage (fshihet kur mbyllet tab/browser)
       if (response.token) {
         if (rememberMe) {
+          sessionStorage.removeItem('token'); // pastro session-only që të mbetet vetëm ky
           localStorage.setItem('token', response.token);
         } else {
+          localStorage.removeItem('token'); // pastro remember-me që të mbetet vetëm session
           sessionStorage.setItem('token', response.token);
         }
 

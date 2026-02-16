@@ -17,9 +17,10 @@ const GoogleCallback = ({ onAuthenticated }: GoogleCallbackProps) => {
     const userDataParam = searchParams.get('user');
 
     if (success === 'true' && token) {
-      // Ruaj token-in në localStorage (si në login normal)
+      // Hapi 7 – Google login: si "remember me" (default), ruaj në localStorage dhe pastro sessionStorage
+      sessionStorage.removeItem('token');
       localStorage.setItem('token', token);
-      
+
       // Ruaj user data në localStorage nëse është e disponueshme
       if (userDataParam) {
         try {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './style/DocsHomePage.css';
-import { getRecentDocuments, deleteDocument } from '../../services';
+import { getRecentDocuments, deleteDocument, clearAuthStorage } from '../../services';
 import type { RecentDocumentItem } from '../../services';
 
 function formatDocumentDate(isoDate?: string): string {
@@ -85,9 +85,7 @@ const DocsHomePage = () => {
   };
 
   const handleSignOut = () => {
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearAuthStorage(); // Hapi 6 – pastro token, user, pending* që remember me të mos mbajë session
     setProfileOpen(false);
     window.location.href = '/login';
   };

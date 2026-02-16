@@ -60,22 +60,35 @@ const VerificationCode = ({ onVerified }: VerificationCodeProps) => {
       return;
     }
 
+    // Hapi 4 – Lexo rememberMe (vendosur nga Login) për backend expiry dhe ku të ruhet token-i
+    const rememberMe = localStorage.getItem('pendingRememberMe') === '1';
+
     try {
       setIsSubmitting(true);
 
       const response = await verifyAuthCode({
         email: pendingEmail,
         code,
+        rememberMe,
       });
 
-      // Nëse verifikimi është i suksesshëm, ruaj token-in dhe pastro pending
+      // Nëse verifikimi është i suksesshëm, ruaj token-in dhe user-in (emri/email për header te docs)
       if (response.token) {
-        // Për thjeshtësi, ruajmë gjithmonë në localStorage
-        localStorage.setItem('token', response.token);
+        if (rememberMe) {
+          sessionStorage.removeItem('token');
+          localStorage.setItem('token', response.token);
+        } else {
+          localStorage.removeItem('token');
+          sessionStorage.setItem('token', response.token);
+        }
+      }
+      if (response.user) {
+        localStorage.setItem('user', JSON.stringify(response.user));
       }
 
       localStorage.removeItem('pendingEmail');
       localStorage.removeItem('pendingUserId');
+      localStorage.removeItem('pendingRememberMe');
 
       // Informo App-in që verifikimi përfundoi
       onVerified();

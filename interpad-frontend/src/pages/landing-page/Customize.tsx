@@ -21,7 +21,7 @@ const Customize = () => {
           
           <div className="customize-preview">
             <img 
-              src="/foto1.png" 
+              src="/customizeappearence.PNG" 
               alt="Interpad Customize Appearance" 
               className="customize-image"
             />

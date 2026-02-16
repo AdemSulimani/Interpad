@@ -1,6 +1,6 @@
 import './style/Home.css';
 
-const Home = () => {
+export default function Home() {
   return (
     <section className="home-section">
       <div className="home-container">
@@ -12,9 +12,9 @@ const Home = () => {
             <strong>real-time</strong>.
           </h1>
           <div className="home-editor-preview">
-            <img 
-              src="/foto1.png" 
-              alt="Interpad Editor Preview" 
+            <img
+              src="/fotohome.PNG"
+              alt="Interpad Editor Preview"
               className="editor-image"
             />
           </div>
@@ -22,7 +22,5 @@ const Home = () => {
       </div>
     </section>
   );
-};
-
-export default Home;
+}
 

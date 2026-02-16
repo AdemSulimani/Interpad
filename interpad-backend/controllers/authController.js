@@ -6,7 +6,9 @@ const User = require('../models/User');
 const { sendVerificationCodeEmail, sendPasswordResetEmail } = require('../services/emailService');
 
 const SALT_ROUNDS = 10;
-const JWT_EXPIRES_IN = '7d';
+// Hapi 4 – Kohëzgjatje e ndryshme: remember me = më e gjatë, sesion = më e shkurtër
+const JWT_EXPIRES_IN = '7d';       // kur përdoruesi zgjedh "remember me"
+const SESSION_EXPIRES_IN = '24h';  // kur nuk zgjedh (sesion deri sa mbyllet browser)
 
 module.exports = {
   // POST /api/auth/register
@@ -172,6 +174,35 @@ module.exports = {
     }
   },
 
+  // GET /api/auth/me – Hapi 3: verifikon JWT dhe kthen user-in (për validim token në frontend)
+  me: async (req, res) => {
+    try {
+      // req.user vendoset nga verifyJWT middleware
+      const user = await User.findById(req.user.id)
+        .select('name email createdAt updatedAt')
+        .lean();
+      if (!user) {
+        return res.status(401).json({ success: false, message: 'User not found' });
+      }
+      return res.status(200).json({
+        success: true,
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+      });
+    } catch (error) {
+      console.error('Auth me error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'An error occurred on the server. Please try again later.',
+      });
+    }
+  },
+
   // POST /api/auth/verify-code
   verifyCode: async (req, res) => {
     try {
@@ -223,8 +254,10 @@ module.exports = {
         email: user.email,
       };
 
+      // Hapi 4 – Përdor kohëzgjatje të ndryshme sipas rememberMe (dërguar nga frontend)
+      const rememberMe = req.body.rememberMe === true;
       const token = jwt.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: JWT_EXPIRES_IN,
+        expiresIn: rememberMe ? JWT_EXPIRES_IN : SESSION_EXPIRES_IN,
       });
 
       const userData = {

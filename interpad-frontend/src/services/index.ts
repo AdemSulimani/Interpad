@@ -92,9 +92,36 @@ export async function loginUser(payload: {
   return data;
 }
 
+/** Hapi 3 – Verifikon token-in me backend. Nëse 401, pastron storage dhe kthen false. */
+export async function validateAuthToken(): Promise<boolean> {
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  if (!token) return false;
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) {
+    clearAuthStorage();
+    return false;
+  }
+  if (!res.ok) return false;
+  return true;
+}
+
+/** Hapi 6 – Pastron të gjitha të dhënat e auth (logout). Remember me nuk mban session aktiv. */
+export function clearAuthStorage(): void {
+  localStorage.removeItem('token');
+  sessionStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('pendingRememberMe');
+  localStorage.removeItem('pendingEmail');
+  localStorage.removeItem('pendingUserId');
+}
+
 export async function verifyAuthCode(payload: {
   email: string;
   code: string;
+  rememberMe?: boolean; // Hapi 4 – për kohëzgjatje JWT në backend
 }) {
   const res = await fetch(`${API_BASE_URL}/api/auth/verify-code`, {
     method: 'POST',
