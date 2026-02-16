@@ -16,8 +16,8 @@ import Modal, { ModalFooter } from './Modal';
 import { getDocument } from '../../services';
 import { getDefaultDocument, contentToPages } from './types/document';
 
-const LEAVE_CONFIRM_TITLE = 'Dilni pa ruajtur?';
-const LEAVE_CONFIRM_MESSAGE = 'A jeni të sigurt që dëshironi të dilni? Nuk i keni ruajtur ndryshimet.';
+const LEAVE_CONFIRM_TITLE = 'Exit without saving?';
+const LEAVE_CONFIRM_MESSAGE = 'Are you sure you want to exit? You have not saved your changes.';
 
 /** Kthen kohën relative nga updatedAt (p.sh. "Just now", "2 min ago") për treguesin "Last saved". */
 function formatLastSaved(iso?: string | null): string | undefined {
@@ -216,8 +216,8 @@ const DocumentEditorPageInner = () => {
         size="small"
         footer={
           <ModalFooter
-            cancelText="Anulo"
-            confirmText="Dil"
+            cancelText="Cancel"
+            confirmText="Exit"
             confirmVariant="danger"
             onCancel={handleLeaveCancel}
             onConfirm={handleLeaveConfirm}

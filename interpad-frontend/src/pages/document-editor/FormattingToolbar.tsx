@@ -185,7 +185,7 @@ const FormattingToolbar = () => {
     if (type === 'link') {
       const url = urlDialogValue.trim();
       if (!url) {
-        showEditorMessage('Vendosni URL-në.');
+        showEditorMessage('Please enter the URL.');
         return;
       }
       const toUse = url.startsWith('http') ? url : `https://${url}`;
@@ -194,7 +194,7 @@ const FormattingToolbar = () => {
     } else if (type === 'image') {
       const imageSrc = uploadedImageDataUrl ?? urlDialogValue.trim();
       if (!imageSrc) {
-        showEditorMessage('Vendosni URL-në e imazhit ose ngarkoni një skedar.');
+        showEditorMessage('Please enter the image URL or upload a file.');
         return;
       }
       const toUse = imageSrc.startsWith('http') || imageSrc.startsWith('data:') ? imageSrc : `https://${imageSrc}`;
@@ -209,7 +209,7 @@ const FormattingToolbar = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      showEditorMessage('Zgjidhni një skedar imazh (jpg, png, gif, etj.).');
+      showEditorMessage('Please select an image file (jpg, png, gif, etc.).');
       return;
     }
     setIsUploadingImage(true);
@@ -225,7 +225,7 @@ const FormattingToolbar = () => {
         setUploadedImageDataUrl(url);
       })
       .catch((err) => {
-        showEditorMessage(err?.message || 'Ngarkimi dështoi. Imazhi u fut me rezervë (vetëm në këtë dokument).');
+        showEditorMessage(err?.message || 'Upload failed. Image was inserted as fallback (only in this document).');
         // uploadedImageDataUrl mbetet Data URL nga FileReader (parapamje tashmë u vendos)
       })
       .finally(() => {
@@ -1145,12 +1145,12 @@ const FormattingToolbar = () => {
       <Modal
         isOpen={!!urlDialog}
         onClose={closeUrlDialog}
-        title={urlDialog?.type === 'link' ? 'Shto link' : 'Shto imazh'}
+        title={urlDialog?.type === 'link' ? 'Add link' : 'Add image'}
         size="small"
         footer={
           <ModalFooter
-            cancelText="Anulo"
-            confirmText={isUploadingImage ? 'Duke ngarkuar...' : 'Shto'}
+            cancelText="Cancel"
+            confirmText={isUploadingImage ? 'Uploading...' : 'Add'}
             onCancel={closeUrlDialog}
             onConfirm={confirmUrlDialog}
             confirmVariant="primary"
@@ -1160,7 +1160,7 @@ const FormattingToolbar = () => {
       >
         <div className="modal-form-group">
           <label className="modal-form-label" htmlFor="editor-url-input">
-            {urlDialog?.type === 'link' ? 'URL e linkut' : 'URL e imazhit'}
+            {urlDialog?.type === 'link' ? 'Link URL' : 'Image URL'}
           </label>
           <input
             id="editor-url-input"
@@ -1181,22 +1181,22 @@ const FormattingToolbar = () => {
         </div>
         {urlDialog?.type === 'image' && (
           <div className="modal-form-group editor-image-upload">
-            <span className="modal-form-label">Ose ngarkoni imazh</span>
+            <span className="modal-form-label">Or upload image</span>
             <input
               ref={imageFileInputRef}
               type="file"
               accept="image/*"
               onChange={handleImageFileChange}
               className="editor-image-file-input"
-              aria-label="Zgjidhni skedar imazhi"
+              aria-label="Choose image file"
             />
             {isUploadingImage && (
-              <p className="editor-image-upload-loading">Duke ngarkuar imazhin te serveri...</p>
+              <p className="editor-image-upload-loading">Uploading image to server...</p>
             )}
             {uploadedImageDataUrl && !isUploadingImage && (
               <div className="editor-image-upload-preview">
-                <img src={uploadedImageDataUrl} alt="Parapamje" />
-                <span className="editor-image-upload-label">Imazhi u zgjidh</span>
+                <img src={uploadedImageDataUrl} alt="Preview" />
+                <span className="editor-image-upload-label">Image selected</span>
                 <button
                   type="button"
                   className="editor-image-upload-clear"
@@ -1205,7 +1205,7 @@ const FormattingToolbar = () => {
                     if (imageFileInputRef.current) imageFileInputRef.current.value = '';
                   }}
                 >
-                  Ndrysho skedar
+                  Change file
                 </button>
               </div>
             )}
