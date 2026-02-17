@@ -22,9 +22,10 @@ const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
   useEffect(() => {
     const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (storedToken) {
-      navigate('/docs', { replace: true });
+      const redirect = searchParams.get('redirect') || '/docs';
+      navigate(redirect, { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   // Kontrollo nëse ka error në URL (p.sh. nga Google callback)
   useEffect(() => {
@@ -53,7 +54,8 @@ const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
         onRequireVerification(email, response.userId);
 
         // Shko te faqja për verifikimin e kodit
-        navigate('/verification-code');
+        const redirect = searchParams.get('redirect');
+        navigate(redirect ? `/verification-code?redirect=${encodeURIComponent(redirect)}` : '/verification-code');
         return;
       }
 
@@ -73,7 +75,8 @@ const Login = ({ onRequireVerification, onAuthenticated }: LoginProps) => {
         onAuthenticated();
       }
 
-      navigate('/docs');
+      const redirect = searchParams.get('redirect') || '/docs';
+      navigate(redirect, { replace: true });
     } catch (err: any) {
       setError(err.message || 'An error occurred during login.');
     } finally {

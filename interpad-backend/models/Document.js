@@ -18,6 +18,28 @@ const documentSchema = new mongoose.Schema(
       required: [true, 'User is required'],
       index: true,
     },
+    sharedWith: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    shareTokens: [
+      {
+        token: {
+          type: String,
+          required: true,
+        },
+        role: {
+          type: String,
+          enum: ['editor', 'viewer'],
+          default: 'editor',
+        },
+        expiresAt: {
+          type: Date,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

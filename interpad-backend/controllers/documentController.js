@@ -377,4 +377,8 @@ module.exports = {
   createShareLink,
   getAccessInfo,
   deleteOne,
+  // Exported helpers so that WebSocket/Yjs layer can reuse
+  // the same access-control and share-token logic.
+  userHasBasicAccess,
+  findActiveShareToken,
 };

@@ -7,8 +7,9 @@ import {
   useEffect,
   type ReactNode,
 } from 'react';
+import type * as Y from 'yjs';
 import type { DocumentModel } from '../types/document';
-import { getDefaultDocument } from '../types/document';
+import { getDefaultDocument, getDocumentContent, PAGE_DELIMITER, contentToPages } from '../types/document';
 import type { DocumentComment } from '../../../services/index';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -71,6 +72,12 @@ export interface DocumentEditorContextValue {
   zoomLevel: number;
   /** Vendos nivelin e zoom-it (thirret nga StatusBar). */
   setZoomLevel: (value: number) => void;
+  /** Yjs Doc aktiv për këtë editor (nëse kollaborimi është aktiv). */
+  collabDoc: Y.Doc | null;
+  /** Yjs shared text që mban përmbajtjen e dokumentit (HTML + PAGE_DELIMITER). */
+  collabText: Y.Text | null;
+  /** Vendos ose heq lidhjen me dokumentin kollaborues Yjs. */
+  attachCollab: (binding: { ydoc: Y.Doc; yText: Y.Text } | null) => void;
 }
 
 const DocumentEditorContext = createContext<DocumentEditorContextValue | null>(null);
@@ -103,6 +110,8 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const savedRangeRef = useRef<Range | null>(null);
   const scrollToCommentAnchorRef = useRef<((anchor: CommentAnchorScroll) => void) | null>(null);
+  const [collabDoc, setCollabDoc] = useState<Y.Doc | null>(null);
+  const [collabText, setCollabText] = useState<Y.Text | null>(null);
 
   const saveEditorSelection = useCallback(() => {
     const el = editorRef.current;
@@ -148,23 +157,56 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     setHasUnsavedChanges(true);
   }, []);
 
-  const setContent = useCallback((value: string) => {
-    setDocumentState((prev) => ({ ...prev, pages: [value] }));
-    setHasUnsavedChanges(true);
-  }, []);
+  /**
+   * Helper që aplikon një ndryshim te faqet dhe, nëse ka një Yjs binding aktiv,
+   * e shkruan ndryshimin edhe në shared text (që sinkrohet real‑time me klientët tjerë).
+   */
+  const applyPagesUpdate = useCallback(
+    (updater: (prevPages: string[]) => string[]) => {
+      setDocumentState((prev) => {
+        const nextPages = updater(prev.pages);
 
-  const setPages = useCallback((pages: string[]) => {
-    setDocumentState((prev) => ({ ...prev, pages }));
-    setHasUnsavedChanges(true);
-  }, []);
+        if (collabDoc && collabText) {
+          const fullContent = nextPages.join(PAGE_DELIMITER);
+          collabDoc.transact(() => {
+            if (collabText.length > 0) {
+              collabText.delete(0, collabText.length);
+            }
+            if (fullContent) {
+              collabText.insert(0, fullContent);
+            }
+          });
+        }
 
-  const setPageContent = useCallback((pageIndex: number, value: string) => {
-    setDocumentState((prev) => ({
-      ...prev,
-      pages: prev.pages.map((p, i) => (i === pageIndex ? value : p)),
-    }));
-    setHasUnsavedChanges(true);
-  }, []);
+        return { ...prev, pages: nextPages };
+      });
+      setHasUnsavedChanges(true);
+    },
+    [collabDoc, collabText]
+  );
+
+  const setContent = useCallback(
+    (value: string) => {
+      applyPagesUpdate(() => [value]);
+    },
+    [applyPagesUpdate]
+  );
+
+  const setPages = useCallback(
+    (pages: string[]) => {
+      applyPagesUpdate(() => pages);
+    },
+    [applyPagesUpdate]
+  );
+
+  const setPageContent = useCallback(
+    (pageIndex: number, value: string) => {
+      applyPagesUpdate((prevPages) =>
+        prevPages.map((p, i) => (i === pageIndex ? value : p))
+      );
+    },
+    [applyPagesUpdate]
+  );
 
   const setSaveStatus = useCallback((status: SaveStatus) => {
     setSaveStatusState(status);
@@ -230,6 +272,59 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     setZoomLevelState(clamped);
   }, []);
 
+  /**
+   * Lidh ose shkëput editorin nga një dokument kollaborues Yjs.
+   * Kur lidhet:
+   *  - nëse shared text ka përmbajtje, ajo bëhet burimi kryesor për pages (remote state)
+   *  - nëse shared text është bosh, inicializohet nga dokumenti aktual lokal.
+   * Kur shared text ndryshon (nga përdorues lokal ose remote), pages rifreskohen.
+   */
+  const attachCollab = useCallback(
+    (binding: { ydoc: Y.Doc; yText: Y.Text } | null) => {
+      setCollabDoc(binding ? binding.ydoc : null);
+      setCollabText(binding ? binding.yText : null);
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!collabDoc || !collabText) return;
+
+    // Inicializim i një dokumenti bosh nga gjendja lokale ekzistuese.
+    if (collabText.length === 0) {
+      const initial = getDocumentContent(document);
+      if (initial) {
+        collabDoc.transact(() => {
+          collabText.insert(0, initial);
+        });
+      }
+    }
+
+    const applyFromShared = () => {
+      const content = collabText.toString();
+      const pages = contentToPages(content);
+      setDocumentState((prev) => ({
+        ...prev,
+        pages,
+      }));
+    };
+
+    // Pas lidhjes, trajto Yjs si burim të vërtetë për përmbajtjen.
+    applyFromShared();
+
+    const observer = () => {
+      applyFromShared();
+    };
+
+    collabText.observe(observer);
+    return () => {
+      collabText.unobserve(observer);
+    };
+  // Që të shmangim loop-in, varim vetëm nga lidhja Yjs (collabDoc/collabText),
+  // jo nga dokumenti React që e përditësojmë brenda këtij efekti.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collabDoc, collabText]);
+
   useEffect(() => {
     try {
       window.localStorage.setItem(ZOOM_STORAGE_KEY, String(zoomLevel));
@@ -264,6 +359,9 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     setComments,
     zoomLevel,
     setZoomLevel,
+    collabDoc,
+    collabText,
+    attachCollab,
   };
 
   return (

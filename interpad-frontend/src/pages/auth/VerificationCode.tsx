@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './style/VerificationCode.css';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { verifyAuthCode, resendVerificationCode } from '../../services';
 
 type VerificationCodeProps = {
@@ -12,6 +12,7 @@ const VerificationCode = ({ onVerified }: VerificationCodeProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleCodeChange = (index: number, value: string) => {
     // Allow only single digit
@@ -93,8 +94,9 @@ const VerificationCode = ({ onVerified }: VerificationCodeProps) => {
       // Informo App-in që verifikimi përfundoi
       onVerified();
 
-      // Shko te faqja Docs pas verifikimit
-      navigate('/docs');
+      // Shko te destinacioni origjinal (nëse ka), përndryshe te Docs
+      const redirect = searchParams.get('redirect') || '/docs';
+      navigate(redirect, { replace: true });
     } catch (err: any) {
       setError(err.message || 'Verification failed. Please try again.');
     } finally {
