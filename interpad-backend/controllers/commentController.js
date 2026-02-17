@@ -1,13 +1,19 @@
 const Comment = require('../models/Comment');
 const Document = require('../models/Document');
 const mongoose = require('mongoose');
+const { userHasBasicAccess } = require('./documentController');
 
 /**
- * Kontrollon nëse dokumenti ekziston dhe i përket user-it; kthen dokumentin ose null.
+ * Kontrollon nëse dokumenti ekziston dhe user-i ka qasje bazike
+ * (ose si pronar ose si shared collaborator); kthen dokumentin ose null.
  */
 async function getDocumentForUser(documentId, userId) {
   if (!documentId || !mongoose.Types.ObjectId.isValid(documentId)) return null;
-  return Document.findOne({ _id: documentId, userId });
+
+  const doc = await Document.findById(documentId);
+  if (!doc) return null;
+
+  return userHasBasicAccess(doc, userId) ? doc : null;
 }
 
 /**
