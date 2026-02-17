@@ -1,6 +1,6 @@
 import './App.css';
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import LandingPage from './pages/landing-page/LandingPage';
@@ -15,6 +15,7 @@ function App() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>('pending');
   const [needsVerification, setNeedsVerification] = useState(false);
   const [pendingUserEmail, setPendingUserEmail] = useState<string | null>(null);
+  const location = useLocation();
 
   // Hapi 1 + 3 – Në ngarkim: nëse ka token, verifikoje me backend; nëse jo, kontrollo pending verification
   useEffect(() => {
@@ -45,6 +46,19 @@ function App() {
   }, []);
 
   const isAuthenticated = authStatus === 'authenticated';
+
+  const getRedirectTarget = () => {
+    const searchParams = new URLSearchParams(location.search);
+    const redirect = searchParams.get('redirect');
+    return redirect || '/docs';
+  };
+
+  const buildLoginRedirect = () => {
+    const from = location.pathname + location.search;
+    const params = new URLSearchParams();
+    params.set('redirect', from);
+    return `/login?${params.toString()}`;
+  };
 
   return (
     <Routes>
@@ -89,6 +103,9 @@ function App() {
                 // Pas autentikimit të suksesshëm, pastro pending data
                 localStorage.removeItem('pendingEmail');
                 localStorage.removeItem('pendingUserId');
+                // Pas autentikimit të suksesshëm, ridrejtohu te destinacioni origjinal (nëse ka).
+                const target = getRedirectTarget();
+                window.history.replaceState(null, '', target);
               }}
             />
           )
@@ -143,6 +160,9 @@ function App() {
 
                 localStorage.removeItem('pendingEmail');
                 localStorage.removeItem('pendingUserId');
+                // Pas verifikimit, ridrejtohu te destinacioni origjinal (nëse ka).
+                const target = getRedirectTarget();
+                window.history.replaceState(null, '', target);
               }}
             />
           )
@@ -156,7 +176,7 @@ function App() {
           ) : isAuthenticated ? (
             <DocsHomePage />
           ) : (
-            <Navigate to="/login" replace />
+            <Navigate to={buildLoginRedirect()} replace />
           )
         }
       />
@@ -168,7 +188,7 @@ function App() {
           ) : isAuthenticated ? (
             <DocumentEditorPage />
           ) : (
-            <Navigate to="/login" replace />
+            <Navigate to={buildLoginRedirect()} replace />
           )
         }
       />
@@ -180,7 +200,7 @@ function App() {
           ) : isAuthenticated ? (
             <DocumentEditorPage />
           ) : (
-            <Navigate to="/login" replace />
+            <Navigate to={buildLoginRedirect()} replace />
           )
         }
       />

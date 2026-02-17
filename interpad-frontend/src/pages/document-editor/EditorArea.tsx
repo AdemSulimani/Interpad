@@ -164,7 +164,7 @@ const EditorArea = ({ onAddCommentClick, onCommentHighlightClick }: EditorAreaPr
   const editorWrapperRef = useRef<HTMLDivElement | null>(null);
   const commentBubbleRef = useRef<HTMLDivElement | null>(null);
 
-  // Sync nga state te DOM vetëm kur ndryshon dokumenti (id) – ngarkim doc i ri.
+  // Sync nga state te DOM sa herë që ndryshojnë faqet (përfshirë ndryshimet nga Yjs/remote).
   // Faqe bosh: vetëm faqja 1 (e vetme) merr placeholder-in "Start typing..."; të tjerat marrin <p><br></p>.
   useEffect(() => {
     const pages = document.pages;
@@ -178,7 +178,7 @@ const EditorArea = ({ onAddCommentClick, onCommentHighlightClick }: EditorAreaPr
       el.innerHTML = contentFromState;
       if (saved !== null) restoreSelection(el, saved);
     }
-  }, [document.id]);
+  }, [document.pages]);
 
   // Kur shtohen faqe të reja (p.sh. pas overflow split), mbush faqet e reja me përmbajtjen nga state
   // që teksti që kalon në faqen e re të shfaqet në DOM (refs janë set tashmë pas commit).

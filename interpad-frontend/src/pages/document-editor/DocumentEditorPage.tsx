@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useBlocker } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useNavigate, useBlocker, useLocation } from 'react-router-dom';
 import './style/DocumentEditorStyles.css';
 import './style/DocumentEditorPage.css';
 import './style/DocumentSidebar.css';
@@ -15,6 +15,8 @@ import { AutoSaveIndicator, ConnectionStatus } from './VisualIndicators';
 import Modal, { ModalFooter } from './Modal';
 import { getDocument } from '../../services';
 import { getDefaultDocument, contentToPages } from './types/document';
+import * as Y from 'yjs';
+import { WebsocketProvider } from 'y-websocket';
 
 const LEAVE_CONFIRM_TITLE = 'Exit without saving?';
 const LEAVE_CONFIRM_MESSAGE = 'Are you sure you want to exit? You have not saved your changes.';
@@ -38,8 +40,18 @@ function formatLastSaved(iso?: string | null): string | undefined {
 
 const DocumentEditorPageInner = () => {
   const { documentId } = useParams<{ documentId?: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
-  const { openNewDocument, hasUnsavedChanges, setDocument, saveStatus, document: currentDocument, clearUnsavedChanges } = useDocumentEditor();
+  const {
+    openNewDocument,
+    hasUnsavedChanges,
+    setDocument,
+    saveStatus,
+    document: currentDocument,
+    clearUnsavedChanges,
+    attachCollab,
+  } = useDocumentEditor();
+  const collabRef = useRef<{ ydoc: Y.Doc; provider: WebsocketProvider } | null>(null);
   const lastSavedLabel = formatLastSaved(currentDocument.updatedAt);
   const indicatorStatus =
     saveStatus === 'error' ? 'error' as const
@@ -57,6 +69,11 @@ const DocumentEditorPageInner = () => {
   } | null>(null);
   const [refreshCommentsKey, setRefreshCommentsKey] = useState(0);
   const [focusedCommentId, setFocusedCommentId] = useState<string | null>(null);
+  const [collabStatus, setCollabStatus] = useState<'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'>('idle');
+  const [activeCollaboratorCount, setActiveCollaboratorCount] = useState<number | null>(null);
+
+  const searchParams = new URLSearchParams(location.search);
+  const shareToken = searchParams.get('token') || undefined;
 
   // Hapi 4: Përmirëso logjikën e useBlocker
   // Kontrollo nëse save-i është duke u procesuar ose sapo u përfundua
@@ -125,6 +142,8 @@ const DocumentEditorPageInner = () => {
       setDocumentLoadError(null);
       setIsLoadingDocument(false);
       openNewDocument();
+      setCollabStatus('idle');
+      setActiveCollaboratorCount(null);
       return;
     }
 
@@ -132,7 +151,7 @@ const DocumentEditorPageInner = () => {
     setIsLoadingDocument(true);
     setDocumentLoadError(null);
 
-    getDocument(documentId)
+    getDocument(documentId, shareToken ? { token: shareToken } : undefined)
       .then((doc) => {
         if (cancelled) return;
         setDocument({
@@ -156,7 +175,90 @@ const DocumentEditorPageInner = () => {
     return () => {
       cancelled = true;
     };
-  }, [documentId, openNewDocument, setDocument]);
+  }, [documentId, openNewDocument, setDocument, shareToken]);
+
+  // Inicializo Yjs (Y.Doc + WebSocket provider) për collaborative editing dhe presence (awareness).
+  useEffect(() => {
+    if (!documentId || documentId === 'new') {
+      setCollabStatus('idle');
+      setActiveCollaboratorCount(null);
+      if (collabRef.current) {
+        collabRef.current.provider.destroy();
+        collabRef.current.ydoc.destroy();
+        collabRef.current = null;
+      }
+      attachCollab(null);
+      return;
+    }
+
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const wsBase = API_BASE_URL.replace(/^http/i, 'ws').replace(/\/$/, '');
+    const authToken = localStorage.getItem('token') || sessionStorage.getItem('token') || undefined;
+
+    setCollabStatus('connecting');
+
+    const ydoc = new Y.Doc();
+    const yText = ydoc.getText('content');
+    // Shënim: `WebsocketProvider` shton roomName si segment i path-it.
+    // Prandaj përdorim bazën `/yjs` dhe roomName = documentId,
+    // në mënyrë që URL final të jetë: ws://.../yjs/<documentId>
+    const provider = new WebsocketProvider(`${wsBase}/yjs`, documentId, ydoc, {
+      params: {
+        // Share token nga URL (nëse ekziston) – njësoj si për REST.
+        token: shareToken,
+        // JWT aktual si query param që WS middleware mund ta verifikojë.
+        authToken,
+      },
+    });
+
+    collabRef.current = { ydoc, provider };
+
+    // Awareness – përdor protokollin e Yjs për presence.
+    const awareness = provider.awareness;
+
+    // Vendos gjendjen lokale minimale (mund të zgjerohet me name/avatar më vonë).
+    awareness.setLocalState({
+      user: {
+        name: 'You',
+      },
+    });
+
+    const updateActiveCollaborators = () => {
+      const states = awareness.getStates();
+      setActiveCollaboratorCount(states.size || null);
+    };
+
+    updateActiveCollaborators();
+
+    awareness.on('change', updateActiveCollaborators);
+
+    // Lidh editorin me dokumentin kollaborues Yjs për këtë seancë.
+    attachCollab({ ydoc, yText });
+
+    const handleStatus = (event: { status: 'connected' | 'connecting' | 'disconnected' }) => {
+      setCollabStatus(event.status);
+    };
+
+    const handleConnectionError = () => {
+      setCollabStatus('error');
+    };
+
+    provider.on('status', handleStatus);
+    provider.on('connection-close', handleConnectionError);
+    provider.on('connection-error', handleConnectionError);
+
+    return () => {
+      awareness.off('change', updateActiveCollaborators);
+      provider.off('status', handleStatus);
+      provider.off('connection-close', handleConnectionError);
+      provider.off('connection-error', handleConnectionError);
+      provider.destroy();
+      ydoc.destroy();
+      collabRef.current = null;
+      attachCollab(null);
+      setActiveCollaboratorCount(null);
+    };
+  }, [documentId, shareToken, attachCollab]);
 
   // Sidebar closed by default on mobile, open on desktop
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
@@ -228,7 +330,10 @@ const DocumentEditorPageInner = () => {
       </Modal>
 
       {/* Header */}
-      <DocumentEditorHeader onBackToDocs={onBackToDocs} />
+      <DocumentEditorHeader
+        onBackToDocs={onBackToDocs}
+        collaboratorCount={activeCollaboratorCount}
+      />
 
       {/* Main Layout Container */}
       <div className="document-editor-main">
@@ -359,7 +464,10 @@ const DocumentEditorPageInner = () => {
           <AutoSaveIndicator status={indicatorStatus} lastSaved={indicatorLastSaved} />
         </div>
         <div className="indicators-right">
-          <ConnectionStatus status="connected" showText={false} />
+          <ConnectionStatus
+            status={collabStatus === 'idle' ? 'disconnected' : collabStatus}
+            showText={false}
+          />
           <button
             className="fullscreen-toggle-btn"
             onClick={toggleFullscreen}
