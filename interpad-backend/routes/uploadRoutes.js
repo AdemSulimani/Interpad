@@ -1,21 +1,24 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const { uploadImage, UPLOAD_DIR, MAX_SIZE, ALLOWED_MIMES } = require('../controllers/uploadController');
+const { uploadImage, UPLOAD_DIR, MAX_SIZE, ALLOWED_MIMES, useCloudinary } = require('../controllers/uploadController');
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, UPLOAD_DIR);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || path.extname(file.mimetype) || '.jpg';
-    const safeExt = ext.toLowerCase().replace(/[^a-z0-9.]/g, '');
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${safeExt || '.jpg'}`;
-    cb(null, name);
-  },
-});
+// Me Cloudinary përdorim memory (buffer); pa Cloudinary ruajmë në disk
+const storage = useCloudinary
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, UPLOAD_DIR);
+      },
+      filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname) || path.extname(file.mimetype) || '.jpg';
+        const safeExt = ext.toLowerCase().replace(/[^a-z0-9.]/g, '');
+        const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${safeExt || '.jpg'}`;
+        cb(null, name);
+      },
+    });
 
 const fileFilter = (req, file, cb) => {
   if (ALLOWED_MIMES.includes(file.mimetype)) {
