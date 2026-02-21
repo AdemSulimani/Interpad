@@ -13,8 +13,8 @@ type AuthStatus = 'pending' | 'authenticated' | 'unauthenticated';
 
 function App() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>('pending');
-  const [needsVerification, setNeedsVerification] = useState(false);
-  const [pendingUserEmail, setPendingUserEmail] = useState<string | null>(null);
+  const [, setNeedsVerification] = useState(false);
+  const [, setPendingUserEmail] = useState<string | null>(null);
   const location = useLocation();
 
   // Hapi 1 + 3 – Në ngarkim: nëse ka token, verifikoje me backend; nëse jo, kontrollo pending verification

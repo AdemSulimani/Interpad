@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './style/VerificationCode.css';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { verifyAuthCode, resendVerificationCode } from '../../services';
 
 type VerificationCodeProps = {

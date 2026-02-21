@@ -9,7 +9,7 @@ import {
 } from 'react';
 import type * as Y from 'yjs';
 import type { DocumentModel } from '../types/document';
-import { getDefaultDocument, getDocumentContent, PAGE_DELIMITER, contentToPages, DEFAULT_PAGE_HTML } from '../types/document';
+import { getDefaultDocument, PAGE_DELIMITER, contentToPages, DEFAULT_PAGE_HTML } from '../types/document';
 import type { DocumentComment } from '../../../services/index';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';

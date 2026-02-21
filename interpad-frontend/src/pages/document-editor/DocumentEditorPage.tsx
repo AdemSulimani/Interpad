@@ -226,9 +226,9 @@ const DocumentEditorPageInner = () => {
     const provider = new WebsocketProvider(`${wsBase}/yjs`, documentId, ydoc, {
       params: {
         // Share token nga URL (nëse ekziston) – njësoj si për REST.
-        token: shareToken,
+        token: shareToken ?? '',
         // JWT aktual si query param që WS middleware mund ta verifikojë.
-        authToken,
+        authToken: authToken ?? '',
       },
     });
 
